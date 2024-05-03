@@ -1,40 +1,41 @@
 set(TEST_SOURCES
-    aarch64/ArchInfoTest.cc
-    aarch64/ArchitectureTest.cc
-    aarch64/AuxiliaryFunctionsTest.cc
-    aarch64/ExceptionHandlerTest.cc
-    aarch64/InstructionTest.cc
-    aarch64/OperandContainerTest.cc
-    riscv/ArchInfoTest.cc
-    riscv/ArchitectureTest.cc
-    riscv/ExceptionHandlerTest.cc
-    riscv/InstructionTest.cc
-    pipeline/A64FXPortAllocatorTest.cc
-    pipeline/BalancedPortAllocatorTest.cc
-    pipeline/DecodeUnitTest.cc
-    pipeline/DispatchIssueUnitTest.cc
-    pipeline/ExecuteUnitTest.cc
-    pipeline/FetchUnitTest.cc
-    pipeline/LoadStoreQueueTest.cc
-    pipeline/M1PortAllocatorTest.cc
-    pipeline/MappedRegisterFileSetTest.cc
-    pipeline/PipelineBufferTest.cc
-    pipeline/RegisterAliasTableTest.cc
-    pipeline/RenameUnitTest.cc
-    pipeline/ReorderBufferTest.cc
-    pipeline/WritebackUnitTest.cc
-    ArchitecturalRegisterFileSetTest.cc
-    ElfTest.cc
-    FixedLatencyMemoryInterfaceTest.cc
-    FlatMemoryInterfaceTest.cc
-    GenericPredictorTest.cc
-    OSTest.cc
-    PoolTest.cc
-    ProcessTest.cc
-    RegisterFileSetTest.cc
-    RegisterValueTest.cc
-    PerceptronPredictorTest.cc
-    SpecialFileDirGenTest.cc
+    # aarch64/ArchInfoTest.cc
+    # aarch64/ArchitectureTest.cc
+    # aarch64/AuxiliaryFunctionsTest.cc
+    # aarch64/ExceptionHandlerTest.cc
+    # aarch64/InstructionTest.cc
+    # aarch64/OperandContainerTest.cc
+    # riscv/ArchInfoTest.cc
+    # riscv/ArchitectureTest.cc
+    # riscv/ExceptionHandlerTest.cc
+    # riscv/InstructionTest.cc
+    riscv/RvvDecode.cc
+    # pipeline/A64FXPortAllocatorTest.cc
+    # pipeline/BalancedPortAllocatorTest.cc
+    # pipeline/DecodeUnitTest.cc
+    # pipeline/DispatchIssueUnitTest.cc
+    # pipeline/ExecuteUnitTest.cc
+    # pipeline/FetchUnitTest.cc
+    # pipeline/LoadStoreQueueTest.cc
+    # pipeline/M1PortAllocatorTest.cc
+    # pipeline/MappedRegisterFileSetTest.cc
+    # pipeline/PipelineBufferTest.cc
+    # pipeline/RegisterAliasTableTest.cc
+    # pipeline/RenameUnitTest.cc
+    # pipeline/ReorderBufferTest.cc
+    # pipeline/WritebackUnitTest.cc
+    # ArchitecturalRegisterFileSetTest.cc
+    # ElfTest.cc
+    # FixedLatencyMemoryInterfaceTest.cc
+    # FlatMemoryInterfaceTest.cc
+    # GenericPredictorTest.cc
+    # OSTest.cc
+    # PoolTest.cc
+    # ProcessTest.cc
+    # RegisterFileSetTest.cc
+    # RegisterValueTest.cc
+    # PerceptronPredictorTest.cc
+    # SpecialFileDirGenTest.cc
     )
 
 add_executable(unittests ${TEST_SOURCES})

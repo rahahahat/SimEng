@@ -1,12 +1,15 @@
 
 #include <cfenv>
 #include <cmath>
+#include <cstring>
 #include <iostream>
 #include <tuple>
 
 #include "InstructionMetadata.hh"
 #include "simeng/arch/riscv/Architecture.hh"
 #include "simeng/arch/riscv/Instruction.hh"
+#include "simeng/arch/riscv/rvv/RVV.hh"
+#include "simeng/arch/riscv/rvv/RVVUtils.hh"
 
 namespace simeng {
 namespace arch {
@@ -171,6 +174,29 @@ void Instruction::executionNYI() {
   return;
 }
 
+void Instruction::executeRVVLoadStore() {
+  uint16_t vlen = architecture_.vlen;
+  switch (metadata_.id) {
+    case RVV_INSN_TYPE::RVV_LD_USTRIDE: {
+      uint16_t eew = 8;
+      get_eew(eew, VLE);
+      std::cout << "EEW: " << eew << std::endl;
+      std::vector<char> result((vlen / 8), '\0');
+      for (uint16_t x = 0; x < vlen / eew; x++) {
+        uint16_t idx = x * (eew / 8);
+        std::cout << "MemData " << std::hex << memoryData_[x].get<uint64_t>()
+                  << std::dec << std::endl;
+        std::memcpy(&result[idx], memoryData_[x].getAsVector<char>(),
+                    (eew / 8));
+      }
+      results_[0] = RegisterValue(result.data(), (vlen / 8));
+      break;
+    }
+    default:
+      return executionNYI();
+  }
+}
+
 void Instruction::execute() {
   assert(!executed_ && "Attempted to execute an instruction more than once");
   assert(canExecute() &&
@@ -178,6 +204,19 @@ void Instruction::execute() {
          "provided");
 
   // Implementation of rv64imafdc according to the v. 20191213 unprivileged spec
+
+  if (isInstruction(InsnType::isRVV)) {
+    if (isInstruction(InsnType::isRVVLoad) ||
+        isInstruction(InsnType::isRVVStore)) {
+      std::cout << "Execute RVV L/S" << std::endl;
+      executed_ = true;
+      executeRVVLoadStore();
+      std::cout << "Done executing: " << metadata_.opcode << "  -  "
+                << metadata_.id << std::endl;
+      return;
+    }
+    return executionNYI();
+  }
 
   executed_ = true;
   switch (metadata_.opcode) {

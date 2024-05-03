@@ -4,6 +4,7 @@
 #include <iostream>
 
 #include "simeng/arch/riscv/Architecture.hh"
+#include "simeng/arch/riscv/rvv/RVV.hh"
 
 namespace simeng {
 namespace arch {
@@ -35,6 +36,33 @@ InstructionMetadata::InstructionMetadata(const cs_insn& insn)
 
   convertCompressedInstruction(insn);
   alterPseudoInstructions(insn);
+};
+
+InstructionMetadata::InstructionMetadata(struct rvv_insn_desc insn_desc,
+                                         const uint8_t* enc)
+    : id(insn_desc.id),
+      opcode(insn_desc.opcode),
+      implicitSourceCount(insn_desc.implicit_src_cnt),
+      implicitDestinationCount(insn_desc.implicit_src_cnt),
+      operandCount(insn_desc.opr_cnt) {
+  insnLengthBytes_ = 4;
+  std::memset(encoding, 0, 4);
+  std::memcpy(encoding, enc, 4);
+  std::strncpy(mnemonic, insn_desc.mnemonic.c_str(), CS_MNEMONIC_SIZE);
+  operandStr = insn_desc.operand_str;
+
+  std::memcpy(implicitSources, insn_desc.imp_srcs.data(),
+              sizeof(uint16_t) * implicitSourceCount);
+  std::memcpy(implicitDestinations, insn_desc.imp_dests.data(),
+              sizeof(uint16_t) * implicitDestinationCount);
+  std::memcpy(operands, insn_desc.operands.data(),
+              sizeof(simeng::cs_riscv_op) * operandCount);
+  isRVV = true;
+  std::cout << "Predecoding RVV" << std::endl;
+  std::cout << insn_desc.mnemonic << " " << insn_desc.operand_str << std::endl;
+  std::cout << "Opocode: " << std::hex << insn_desc.opcode << std::dec
+            << std::endl;
+  std::cout << std::endl;
 }
 
 InstructionMetadata::InstructionMetadata(const uint8_t* invalidEncoding,
@@ -175,7 +203,9 @@ void InstructionMetadata::alterPseudoInstructions(const cs_insn& insn) {
         operands[0].type = RISCV_OP_REG;
         operands[0].reg = RISCV_REG_ZERO;
 
-        operands[1] = insn.detail->riscv.operands[0];
+        memcpy(&operands[1], &insn.detail->riscv.operands[0],
+               sizeof(cs_riscv_op));
+        // operands[1] = insn.detail->riscv.operands[0];
 
         operands[2].type = RISCV_OP_IMM;
         operands[2].imm = 0;
@@ -187,7 +217,9 @@ void InstructionMetadata::alterPseudoInstructions(const cs_insn& insn) {
         operands[0].type = RISCV_OP_REG;
         operands[0].reg = RISCV_REG_RA;
 
-        operands[1] = insn.detail->riscv.operands[0];
+        memcpy(&operands[1], &insn.detail->riscv.operands[0],
+               sizeof(cs_riscv_op));
+        // operands[1] = insn.detail->riscv.operands[0];
 
         operands[2].type = RISCV_OP_IMM;
         operands[2].imm = 0;
@@ -494,7 +526,9 @@ void InstructionMetadata::convertCompressedInstruction(const cs_insn& insn) {
       operands[0].type = RISCV_OP_REG;
       operands[0].reg = RISCV_REG_ZERO;
 
-      operands[1] = insn.detail->riscv.operands[0];
+      memcpy(&operands[1], &insn.detail->riscv.operands[0],
+             sizeof(cs_riscv_op));
+      // operands[1] = insn.detail->riscv.operands[0];
 
       operands[2].type = RISCV_OP_IMM;
       operands[2].imm = 0;

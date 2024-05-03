@@ -10,6 +10,9 @@
 #include "simeng/arch/riscv/InstructionGroups.hh"
 
 namespace simeng {
+
+struct cs_riscv_op;
+
 namespace arch {
 namespace riscv {
 
@@ -23,6 +26,8 @@ const uint8_t GENERAL = 0;
 const uint8_t FLOAT = 1;
 /** The system registers. */
 const uint8_t SYSTEM = 2;
+
+const uint8_t VECTOR = 3;
 
 /** A special register value representing the zero register. */
 const Register ZERO_REGISTER = {GENERAL, (uint16_t)0};
@@ -45,7 +50,7 @@ enum class InstructionException {
 };
 
 // RISC-V Instruction Identifier Masks
-enum class InsnType : uint16_t {
+enum class InsnType : uint32_t {
   /** Is this a store operation? */
   isStore = 1 << 0,
   /** Is this a load operation? */
@@ -68,6 +73,14 @@ enum class InsnType : uint16_t {
   isFloat = 1 << 9,
   /** Is this a floating point <-> integer convert operation? */
   isConvert = 1 << 10,
+  /** */
+  isRVV = 1 << 11,
+  /** */
+  isRVVLoad = 1 << 12,
+  /** */
+  isRVVStore = 1 << 13,
+  /* */
+  isRVVConf = 1 << 14,
 };
 
 /** The maximum number of source registers any supported RISC-V instruction
@@ -190,6 +203,15 @@ class Instruction : public simeng::Instruction {
    * registers. */
   void decode();
 
+  /** */
+  void decode_rvv();
+
+  /** */
+  span<const memory::MemoryAccessTarget> generateAddressesForRVV();
+
+  /** */
+  void executeRVVLoadStore();
+
   /** Update the instruction's identifier with an additional field. */
   constexpr void setInstructionType(InsnType identifier) {
     instructionIdentifier_ |=
@@ -236,6 +258,9 @@ class Instruction : public simeng::Instruction {
   /** The immediate source operand for which there is only ever one. Remains 0
    * if unused. */
   int64_t sourceImm_ = 0;
+
+  int64_t vectorImmediates[4];
+  uint8_t vecImmCount = 0;
 
   /** An array of generated output results. Each entry corresponds to a
    * `destinationRegisters` entry. */

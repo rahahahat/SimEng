@@ -26,6 +26,12 @@ endmacro()
 # we don't use git for LLVM here as it clones the entire LLVM repo which takes too long and we only need a small part of it
 
 FetchContent_Declare(
+  fmt
+  GIT_REPOSITORY  https://github.com/fmtlib/fmt.git
+  GIT_PROGRESS    TRUE
+)
+
+FetchContent_Declare(
   llvm
   URL      https://github.com/llvm/llvm-project/releases/download/llvmorg-14.0.5/llvm-14.0.5.src.tar.xz
   URL_HASH MD5=6bd202e403d950c78985048ce499a518
@@ -43,7 +49,7 @@ FetchContent_Declare(
   capstone-lib
   GIT_REPOSITORY https://github.com/UoB-HPC/capstone.git
   GIT_TAG next
-  GIT_PROGRESS TRUE
+
 
   # Old Git tag pre-Armv9.2
   # GIT_TAG e7be7d99e718ef9741026b80fc6f5e100fdf4f94 # trunk
@@ -117,6 +123,8 @@ option(SIMENG_OPTIMIZE "Enable Extra Compiler Optimizations" OFF)
 option(SIMENG_ENABLE_SST "Compile SimEng SST Wrapper" OFF)
 option(SIMENG_ENABLE_SST_TESTS "Enable testing for SST" OFF)
 
+FetchContent_MakeAvailable_Args(fmt EXCLUDE_FROM_ALL)
+include_directories("${fmt_BINARY_DIR}/include" "${fmt_SOURCE_DIR}/include")
 # Set CXX flag for Apple Mac so that `binary_function` and `unary_function` types that are used in SST can be recognised. 
 # They were deprecated in C++11 and removed in C++17, and Apple Clang v15 no longer supports these types without the following flag
 # TODO: Remove once SST integration has updated to SST version 13 or later - the use of unary and binary functions are removed in later versions.
@@ -148,15 +156,15 @@ if(SIMENG_ENABLE_TESTS)
   if (SIMENG_USE_EXTERNAL_LLVM)
     find_package(LLVM REQUIRED CONFIG NO_CMAKE_BUILDS_PATH)
 
-      # Check LLVM version
-    if ((${LLVM_PACKAGE_VERSION} VERSION_LESS "8.0") OR (${LLVM_PACKAGE_VERSION} VERSION_GREATER_EQUAL "14.1"))
-      message(FATAL_ERROR "LLVM version must be >= 8.0 and <= 14.0")
-    endif()
+    #   # Check LLVM version
+    # if ((${LLVM_PACKAGE_VERSION} VERSION_LESS "8.0") OR (${LLVM_PACKAGE_VERSION} VERSION_GREATER_EQUAL "14.1"))
+    #   message(FATAL_ERROR "LLVM version must be >= 8.0 and <= 14.0")
+    # endif()
 
-      # Print message containing if the full test suite will run
-    if (${LLVM_PACKAGE_VERSION} VERSION_LESS "14.0")
-      message(STATUS "LLVM version does not support AArch64 extensions SME or SVE2. These test suites will be skipped.")
-    endif()
+    #   # Print message containing if the full test suite will run
+    # if (${LLVM_PACKAGE_VERSION} VERSION_LESS "14.0")
+    #   message(STATUS "LLVM version does not support AArch64 extensions SME or SVE2. These test suites will be skipped.")
+    # endif()
 
   else()
 

@@ -211,6 +211,12 @@ class Instruction {
   int getMicroOpIndex() const { return microOpIndex_; }
 
  protected:
+  /** */
+  void addMemoryAddress(memory::MemoryAccessTarget address) {
+    memoryAddresses_.push_back(address);
+    dataPending_ = memoryAddresses_.size();
+    memoryData_.resize(dataPending_);
+  }
   /** Set the accessed memory addresses, and create a corresponding memory data
    * vector. */
   void setMemoryAddresses(

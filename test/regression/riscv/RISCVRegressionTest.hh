@@ -58,12 +58,12 @@ inline std::string paramToString(
  * are appended to the source to ensure that the program will terminate with
  * an unallocated instruction encoding exception instead of running into the
  * heap. */
-#define RUN_RISCV(source)                             \
-  {                                                   \
-    std::string sourceWithTerminator = source;        \
-    sourceWithTerminator += "\n.word 0";              \
-    run(sourceWithTerminator.c_str(), "+m,+a,+f,+d"); \
-  }                                                   \
+#define RUN_RISCV(source)                                \
+  {                                                      \
+    std::string sourceWithTerminator = source;           \
+    sourceWithTerminator += "\n.word 0";                 \
+    run(sourceWithTerminator.c_str(), "+m,+a,+f,+d,+v"); \
+  }                                                      \
   if (HasFatalFailure()) return
 
 /** A helper macro to run a snippet of RISCV assembly code, returning from
@@ -106,6 +106,13 @@ class RISCVRegressionTest : public RegressionTest {
   template <typename T>
   T getFPRegister(uint8_t tag) const {
     return getRegister<T>({simeng::arch::riscv::RegisterType::FLOAT, tag});
+  }
+
+  /** Get the value of a floating point register. */
+  template <typename T>
+  const T* getRVVRegister(uint8_t tag) const {
+    return getVectorRegister<T>(
+        {simeng::arch::riscv::RegisterType::VECTOR, tag});
   }
 
   /** Create a port allocator for an out-of-order core model. */

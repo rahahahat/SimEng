@@ -2,10 +2,103 @@
 
 #include "InstructionMetadata.hh"
 #include "simeng/arch/riscv/Instruction.hh"
+#include "simeng/arch/riscv/rvv/RVV.hh"
 
 namespace simeng {
 namespace arch {
 namespace riscv {
+
+#define get_eew(var, MNEMONIC)    \
+  switch (metadata_.opcode) {     \
+    case MATCH_##MNEMONIC##8_V:   \
+      var = 8;                    \
+      break;                      \
+    case MATCH_##MNEMONIC##16_V:  \
+      var = 16;                   \
+      break;                      \
+    case MATCH_##MNEMONIC##32_V:  \
+      var = 32;                   \
+      break;                      \
+    case MATCH_##MNEMONIC##64_V:  \
+      var = 64;                   \
+      break;                      \
+    case MATCH_##MNEMONIC##128_V: \
+      var = 128;                  \
+      break;                      \
+  }
+
+std::vector<simeng::memory::MemoryAccessTarget> gen_strided_addrs(
+    uint16_t eew, uint64_t base, uint64_t stride, uint32_t vlen) {
+  std::vector<simeng::memory::MemoryAccessTarget> addrs;
+  for (uint16_t x = 0; x < vlen / eew; x++) {
+    uint64_t addr = base + (x * (eew / 8)) + stride;
+    std::cout << "GEN ADDRS: " << addr << " ";
+    uint16_t size = eew / 8;
+    addrs.push_back({addr, size});
+  }
+  std::cout << std::endl;
+  return addrs;
+}
+
+span<const memory::MemoryAccessTarget> Instruction::generateAddressesForRVV() {
+  uint32_t vlen = architecture_.vlen;
+  simeng::cs_riscv_op vtype = metadata_.operands[metadata_.operandCount - 1];
+  switch (metadata_.id) {
+    case RVV_INSN_TYPE::RVV_LD_USTRIDE: {
+      uint16_t eew = 0;
+      get_eew(eew, VLE);
+      uint8_t nf = metadata_.operands[3].imm;
+      uint64_t base = sourceValues_[0].get<uint64_t>();
+      std::cout << "BASE ADDR: " << base << std::endl;
+      auto vaddrs = gen_strided_addrs(eew, base, 0, vlen);
+      setMemoryAddresses(vaddrs);
+      break;
+    }
+    case RVV_INSN_TYPE::RVV_LD_STRIDED: {
+      uint16_t eew = 0;
+      get_eew(eew, VLSE);
+      uint8_t nf = metadata_.operands[4].imm;
+      uint64_t base = sourceValues_[0].get<uint64_t>();
+      uint64_t stride = sourceValues_[1].get<uint64_t>();
+      auto vaddrs = gen_strided_addrs(eew, base, stride, vlen);
+      setMemoryAddresses(vaddrs);
+      break;
+    };
+    // case RVV_INSN_TYPE::RVV_LD_OINDEXED:
+    // case RVV_INSN_TYPE::RVV_LD_UINDEXED:
+    //   uint64_t vtype = sourceValues_[sourceRegisterCount_ -
+    //   1].get<uint64_t>(); uint16_t eew = 0; switch (metadata_.opcode) {
+    //     case MATCH_VLUXEI8_V:
+    //     case MATCH_VLOXEI8_V:
+    //       eew = 8;
+    //       break;
+    //     case MATCH_VLUXEI16_V:
+    //     case MATCH_VLOXEI16_V:
+    //       eew = 16;
+    //       break;
+    //     case MATCH_VLUXEI32_V:
+    //     case MATCH_VLOXEI32_V:
+    //       eew = 32;
+    //       break;
+    //     case MATCH_VLUXEI64_V:
+    //     case MATCH_VLOXEI64_V:
+    //       eew = 64;
+    //       break;
+    //     case MATCH_VLUXEI128_V:
+    //     case MATCH_VLOXEI128_V:
+    //       eew = 128;
+    //       break;
+    //   }
+    //   uint8_t nf = metadata_.operands[3].imm;
+    //   uint64_t base = sourceValues_[0].get<uint64_t>();
+    //   uint64_t stride = sourceValues_[1].getAsVector<>();
+    default:
+      std::cerr << "Default statement in generating addresses for VMemInsns"
+                << std::endl;
+      std::exit(1);
+  }
+  return getGeneratedAddresses();
+}
 
 span<const memory::MemoryAccessTarget> Instruction::generateAddresses() {
   assert(
@@ -13,6 +106,17 @@ span<const memory::MemoryAccessTarget> Instruction::generateAddresses() {
       "generateAddresses called on non-load-or-store instruction");
 
   uint64_t address;
+  if (isInstruction(InsnType::isRVV)) {
+    if (isInstruction(InsnType::isRVVLoad) ||
+        isInstruction(InsnType::isRVVStore)) {
+      std::cout << "Comes here for addr generation" << std::endl;
+      return generateAddressesForRVV();
+    }
+    std::cerr << "Unsupported RVV Memory Insns type for generation of addresses"
+              << std::endl;
+    std::exit(1);
+  }
+
   if (isInstruction(InsnType::isLoad) && isInstruction(InsnType::isStore) &&
       isInstruction(InsnType::isAtomic)) {
     // Atomics

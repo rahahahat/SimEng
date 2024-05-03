@@ -6,8 +6,31 @@
 #include "simeng/arch/riscv/Instruction.hh"
 
 namespace simeng {
+//> Operand type for instruction's operands
+typedef enum riscv_op_type : uint8_t {
+  RISCV_OP_INVALID = 0,  // = CS_OP_INVALID (Uninitialized).
+  RISCV_OP_REG,          // = CS_OP_REG (Register operand).
+  RISCV_OP_IMM,          // = CS_OP_IMM (Immediate operand).
+  RISCV_OP_MEM,          // = CS_OP_MEM (Memory operand).
+  RISCV_OP_VREG,
+  RISCV_OP_SYSREG
+} riscv_op_type;
+
+// Instruction operand
+typedef struct cs_riscv_op {
+  simeng::riscv_op_type type;  // operand type
+  union {
+    unsigned int reg;  // register value for REG operand
+    int64_t imm;       // immediate value for IMM operand
+    riscv_op_mem mem;  // base/disp value for MEM operand
+  };
+} cs_riscv_op;
+
 namespace arch {
 namespace riscv {
+
+/** Forward declaration of rvv_insn_desc defined riscv/rvv.RVV.h file */
+struct rvv_insn_desc;
 
 /** RISC-V opcodes. Each opcode represents a unique RISC-V operation. */
 namespace Opcode {
@@ -24,6 +47,9 @@ struct InstructionMetadata {
 
   /** Constructs an invalid metadata object containing the invalid encoding. */
   InstructionMetadata(const uint8_t* invalidEncoding, uint8_t bytes = 4);
+
+  /** For RVV*/
+  InstructionMetadata(struct rvv_insn_desc insn_desc, const uint8_t* encoding);
 
   /* Returns the current exception state of the metadata */
   InstructionException getMetadataException() const {
@@ -83,10 +109,13 @@ struct InstructionMetadata {
   uint8_t implicitDestinationCount;
 
   /** The explicit operands. */
-  cs_riscv_op operands[MAX_OPERANDS];
+  simeng::cs_riscv_op operands[MAX_OPERANDS];
 
   /** The number of explicit operands. */
   uint8_t operandCount;
+
+  /***/
+  uint8_t isRVV = 0;
 
  private:
   /** Detect instruction aliases and update metadata to match the de-aliased

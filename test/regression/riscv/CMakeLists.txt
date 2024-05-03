@@ -15,6 +15,7 @@ add_executable(regression-riscv
             instructions/atomic.cc
             instructions/float.cc
             instructions/compressed.cc
+            instructions/rvv.cc
         )
 
 configure_file(${capstone_SOURCE_DIR}/arch/RISCV/RISCVGenInstrInfo.inc RISCVGenInstrInfo.inc COPYONLY)

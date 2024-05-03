@@ -6,6 +6,7 @@
 #include <queue>
 
 #include "InstructionMetadata.hh"
+#include "simeng/arch/riscv/rvv/RVVDecode.hh"
 
 namespace simeng {
 namespace arch {
@@ -231,6 +232,13 @@ uint8_t Architecture::predecode(const void* ptr, uint16_t bytesAvailable,
     auto metadata = success ? InstructionMetadata(rawInsn)
                             : InstructionMetadata(encoding, rawInsn.size);
 
+    uint16_t mjop = GET_BIT_SS(encoding[0], 0, 6);
+    if (!success && (mjop == 0x7 | mjop == 0x27 | mjop == 0x57)) {
+      uint32_t insn;
+      memcpy(&insn, encoding, 4);
+      rvv_insn_desc insn_desc = rvv_predecode(insn);
+      metadata = InstructionMetadata(insn_desc, encoding);
+    }
     free(rawInsnPointer);
 
     // Cache the metadata
@@ -238,8 +246,10 @@ uint8_t Architecture::predecode(const void* ptr, uint16_t bytesAvailable,
 
     // Create an instruction using the metadata
     Instruction newInsn(*this, metadataCache_.front());
+
     // Set execution information for this instruction
-    newInsn.setExecutionInfo(getExecutionInfo(newInsn));
+    if (!((!success) && (mjop == 0x7 | mjop == 0x27 | mjop == 0x57)))
+      newInsn.setExecutionInfo(getExecutionInfo(newInsn));
 
     // Cache the instruction
     iter = decodeCache_.insert({insnEncoding, newInsn}).first;

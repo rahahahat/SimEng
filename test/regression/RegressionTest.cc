@@ -23,7 +23,7 @@ void RegressionTest::TearDown() {
 
 void RegressionTest::run(const char* source, const char* triple,
                          const char* extensions) {
-  testing::internal::CaptureStdout();
+  // testing::internal::CaptureStdout();
 
   // Zero-out process memory from any prior runs
   if (processMemory_ != nullptr)
@@ -137,8 +137,8 @@ void RegressionTest::run(const char* source, const char* triple,
     numTicks_++;
   }
 
-  stdout_ = testing::internal::GetCapturedStdout();
-  std::cout << stdout_;
+  // stdout_ = testing::internal::GetCapturedStdout();
+  // std::cout << stdout_;
 
   programFinished_ = true;
 }
@@ -184,15 +184,16 @@ void RegressionTest::assemble(const char* source, const char* triple,
 #endif
 
   // Create MC subtarget info
-  std::unique_ptr<llvm::MCSubtargetInfo> subtargetInfo(
-      target->createMCSubtargetInfo(triple, "", extensions));
+  llvm::MCSubtargetInfo* subtargetInfo =
+      target->createMCSubtargetInfo(triple, "", extensions);
+  // std::unique_ptr<llvm::MCSubtargetInfo> subtargetInfo();
   ASSERT_NE(subtargetInfo, nullptr) << "Failed to create LLVM subtarget info";
 
 // For LLVM versions 13+, MC subtarget info is needed to create context and
 // object file info
 #if SIMENG_LLVM_VERSION > 12
   llvm::MCContext context(llvm::Triple(triple), asmInfo.get(), regInfo.get(),
-                          subtargetInfo.get(), &srcMgr, &options, false, "");
+                          subtargetInfo, &srcMgr, &options, false, "");
 
   objectFileInfo.initMCObjectFileInfo(context, false, false);
   context.setObjectFileInfo(&objectFileInfo);
@@ -209,7 +210,7 @@ void RegressionTest::assemble(const char* source, const char* triple,
 
   // Create MC code emitter
   std::unique_ptr<llvm::MCCodeEmitter> codeEmitter(
-      target->createMCCodeEmitter(*instrInfo, *regInfo, context));
+      target->createMCCodeEmitter(*instrInfo, context));
   ASSERT_NE(codeEmitter, nullptr) << "Failed to create LLVM code emitter";
 
   // Create MC object writer
@@ -267,5 +268,6 @@ void RegressionTest::assemble(const char* source, const char* triple,
   codeSize_ = textData.size();
   if (code_) delete[] code_;
   code_ = new uint8_t[codeSize_];
+  delete subtargetInfo;
   std::copy(textData.begin(), textData.end(), code_);
 }

@@ -1,6 +1,9 @@
+#include <bitset>
+
 #include "InstructionMetadata.hh"
 #include "simeng/arch/riscv/Architecture.hh"
 #include "simeng/arch/riscv/Instruction.hh"
+#include "simeng/arch/riscv/rvv/RVV.hh"
 
 namespace simeng {
 namespace arch {
@@ -60,6 +63,114 @@ Register csRegToRegister(unsigned int reg) {
           std::numeric_limits<uint16_t>::max()};
 }
 
+Register decodeVecReg(unsigned int reg) {
+  return {RegisterType::VECTOR, static_cast<uint16_t>(reg)};
+}
+/******************
+ * RVV DECODING LOGIC
+ *****************/
+void Instruction::decode_rvv() {
+  uint64_t vlen = architecture_.vlen;
+  switch (metadata_.id) {
+    case RVV_INSN_TYPE::RVV_LD_USTRIDE:     // vle
+    case RVV_INSN_TYPE::RVV_LD_STRIDED:     // vlse
+    case RVV_INSN_TYPE::RVV_LD_UINDEXED:    // vluxei
+    case RVV_INSN_TYPE::RVV_LD_OINDEXED:    // vloxei
+    case RVV_INSN_TYPE::RVV_LD_USTRIDEFF:   // vleff
+    case RVV_INSN_TYPE::RVV_LD_WHOLEREG: {  // vlxre
+      if (metadata_.operands[0].reg != 0) {
+        // Catch zero register references and pre-complete those operands
+        destinationRegisters_[destinationRegisterCount_] =
+            decodeVecReg(metadata_.operands[0].reg);
+        destinationRegisterCount_++;
+      }
+      for (uint8_t x = 1; x < metadata_.operandCount; x++) {
+        simeng::cs_riscv_op op = metadata_.operands[x];
+        switch (op.type) {
+          case 0x1: {  // reg
+            std::cout << "Decoding reg: " << op.reg << std::endl;
+            sourceRegisters_[sourceRegisterCount_] =
+                csRegToRegister(op.reg + 1);
+            if (op.reg == 0) {
+              // Catch zero register references and pre-complete those operands
+              sourceValues_[sourceRegisterCount_] = RegisterValue(0, 8);
+              sourceOperandsPending_--;
+            }
+            sourceRegisterCount_++;
+            sourceOperandsPending_++;
+            break;
+          }
+          case 0x2: {  // imm
+            vectorImmediates[vecImmCount] = op.imm;
+            vecImmCount++;
+            break;
+          }
+          case 0x4: {  // vreg
+            sourceRegisters_[sourceRegisterCount_] = decodeVecReg(op.reg);
+            if (op.reg == 0) {
+              // Catch zero register references and pre-complete those operands
+              sourceValues_[sourceRegisterCount_] = RegisterValue(0, vlen);
+              sourceOperandsPending_--;
+            }
+            sourceRegisterCount_++;
+            sourceOperandsPending_++;
+            break;
+          }
+          case 0x5: {  // sysreg
+            sourceRegisters_[sourceRegisterCount_] = {
+                RegisterType::SYSTEM,
+                static_cast<uint16_t>(
+                    architecture_.getSystemRegisterTag(op.reg))};
+            sourceRegisterCount_++;
+            sourceOperandsPending_++;
+            break;
+          }
+        }
+      }
+      break;
+    }
+    case RVV_INSN_TYPE::RVV_ST_USTRIDE:     // vse
+    case RVV_INSN_TYPE::RVV_ST_STRIDED:     // vsse
+    case RVV_INSN_TYPE::RVV_ST_UINDEXED:    // vsuxei
+    case RVV_INSN_TYPE::RVV_ST_OINDEXED:    // vsoxei
+    case RVV_INSN_TYPE::RVV_ST_WHOLEREG: {  // vsre
+      for (uint8_t x = 0; x < metadata_.operandCount; x++) {
+        simeng::cs_riscv_op op = metadata_.operands[x];
+        switch (op.type) {
+          case 0x1: {  // reg
+            sourceRegisters_[sourceRegisterCount_] = csRegToRegister(op.reg);
+            if (op.reg == 0) {
+              // Catch zero register references and pre-complete those operands
+              sourceValues_[sourceRegisterCount_] = RegisterValue(0, 8);
+              sourceOperandsPending_--;
+            }
+            sourceRegisterCount_++;
+            sourceOperandsPending_++;
+            break;
+          }
+          case 0x2: {  // imm
+            vectorImmediates[vecImmCount] = op.imm;
+            vecImmCount++;
+            break;
+          }
+          case 0x4: {  // vreg
+            sourceRegisters_[sourceRegisterCount_] = decodeVecReg(op.reg);
+            if (op.reg == 0) {
+              // Catch zero register references and pre-complete those operands
+              sourceValues_[sourceRegisterCount_] = RegisterValue(0, vlen);
+              sourceOperandsPending_--;
+            }
+            sourceRegisterCount_++;
+            sourceOperandsPending_++;
+            break;
+          }
+        }
+      }
+      break;
+    }
+  }
+}
+
 /******************
  * DECODING LOGIC
  *****************/
@@ -67,6 +178,25 @@ void Instruction::decode() {
   if (metadata_.id == RISCV_INS_INVALID) {
     exception_ = InstructionException::EncodingUnallocated;
     exceptionEncountered_ = true;
+    return;
+  }
+
+  std::cout << "Comes here" << std::endl;
+
+  if (metadata_.id > RVV_INSN_TYPE::RVV_INSNS &&
+      metadata_.id < RVV_INSN_TYPE::RVV_INSN_END) {
+    setInstructionType(InsnType::isRVV);
+    if (metadata_.id > RVV_LOAD && metadata_.id < RVV_STORE) {
+      setInstructionType(InsnType::isLoad);
+      setInstructionType(InsnType::isRVVLoad);
+    } else if (metadata_.id > RVV_STORE && metadata_.id < RVV_CONF) {
+      setInstructionType(InsnType::isStore);
+      setInstructionType(InsnType::isRVVStore);
+    } else {
+      setInstructionType(InsnType::isRVVConf);
+    }
+    std::cout << "Decoding RVV" << std::endl;
+    decode_rvv();
     return;
   }
 
