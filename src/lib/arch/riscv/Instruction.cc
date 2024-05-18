@@ -10,13 +10,27 @@ namespace simeng {
 namespace arch {
 namespace riscv {
 
+#define GET_BIT(src, pos) ((src & (0b01 << pos)) >> pos)
+#define GET_BIT_SS(src, s_pos, e_pos) \
+  ((src >> s_pos) & (0xFFFFFFFF >> (31 - (e_pos - s_pos))))
+
+struct vtype_reg decode_vtype(uint64_t reg) {
+  return vtype_reg{
+      .vill = (uint8_t)GET_BIT(reg, 63),
+      .vma = (uint8_t)GET_BIT(reg, 7),
+      .vta = (uint8_t)GET_BIT(reg, 6),
+      .sew = (uint8_t)GET_BIT_SS(reg, 0, 2),
+      .vlmul = (uint8_t)GET_BIT_SS(reg, 3, 5),
+  };
+};
+
 Instruction::Instruction(const Architecture& architecture,
                          const InstructionMetadata& metadata)
     : architecture_(architecture),
       metadata_(metadata),
       exception_(metadata.getMetadataException()) {
   exceptionEncountered_ = metadata.getMetadataExceptionEncountered();
-  decode();
+  // decode();
 }
 
 Instruction::Instruction(const Architecture& architecture,

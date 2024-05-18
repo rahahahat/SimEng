@@ -43,7 +43,6 @@ void Core::tick() {
   if (pendingReads_ > 0) {
     // Handle pending reads to a uop
     auto& uop = microOps_.front();
-
     const auto& completedReads = dataMemory_.getCompletedReads();
     for (const auto& response : completedReads) {
       assert(pendingReads_ > 0);
@@ -89,12 +88,19 @@ void Core::tick() {
 
     // Decode
     for (size_t index = 0; index < macroOp_.size(); index++) {
+      auto& _uop = macroOp_[index];
+      auto& srcs = _uop->getSourceRegisters();
+      if (srcs.size()) {
+        _uop->decode(
+            registerFileSet_.get(srcs[srcs.size() - 1]).get<uint64_t>());
+      } else {
+        _uop->decode();
+      }
       microOps_.push(std::move(macroOp_[index]));
     }
   }
 
   auto& uop = microOps_.front();
-
   if (uop->exceptionEncountered()) {
     handleException(uop);
     return;
@@ -195,19 +201,20 @@ void Core::execute(std::shared_ptr<Instruction>& uop) {
   }
 
   // Writeback
-  auto results = uop->getResults();
-  auto destinations = uop->getDestinationRegisters();
-  if (uop->isStoreData()) {
-    for (size_t i = 0; i < results.size(); i++) {
-      auto reg = destinations[i];
-      registerFileSet_.set(reg, results[i]);
-    }
-  } else {
-    for (size_t i = 0; i < results.size(); i++) {
-      auto reg = destinations[i];
-      registerFileSet_.set(reg, results[i]);
-    }
-  }
+  uop->writeback(registerFileSet_);
+  // auto results = uop->getResults();
+  // auto destinations = uop->getDestinationRegisters();
+  // if (uop->isStoreData()) {
+  //   for (size_t i = 0; i < results.size(); i++) {
+  //     auto reg = destinations[i];
+  //     registerFileSet_.set(reg, results[i]);
+  //   }
+  // } else {
+  //   for (size_t i = 0; i < results.size(); i++) {
+  //     auto reg = destinations[i];
+  //     registerFileSet_.set(reg, results[i]);
+  //   }
+  // }
 
   if (uop->isLastMicroOp()) instructionsExecuted_++;
 

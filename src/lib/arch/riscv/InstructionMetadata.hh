@@ -90,6 +90,9 @@ struct InstructionMetadata {
   /** The instruction's encoding. */
   uint8_t encoding[4];
 
+  /***/
+  uint16_t eew;
+
   /** The instruction's mnemonic. */
   char mnemonic[CS_MNEMONIC_SIZE];
 

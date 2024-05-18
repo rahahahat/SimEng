@@ -109,6 +109,9 @@ class Instruction {
   /** Execute the instruction. */
   virtual void execute() = 0;
 
+  /***/
+  virtual void decode(uint64_t sysreg = 0) = 0;
+
   /** Get this instruction's supported set of ports. */
   virtual const std::vector<uint16_t>& getSupportedPorts() = 0;
 
@@ -140,6 +143,25 @@ class Instruction {
   void setBranchPrediction(BranchPrediction prediction) {
     prediction_ = prediction;
   }
+
+  /***/
+  virtual void writeback(simeng::RegisterFileSet& rfs) {
+    auto results = getResults();
+    auto destinations = getDestinationRegisters();
+    if (isStoreData()) {
+      for (size_t i = 0; i < results.size(); i++) {
+        auto reg = destinations[i];
+        rfs.set(reg, results[i]);
+      }
+    } else {
+      for (size_t i = 0; i < results.size(); i++) {
+        auto reg = destinations[i];
+        rfs.set(reg, results[i]);
+      }
+    }
+  };
+
+  /***/
 
   /** Get a branch prediction. */
   BranchPrediction getBranchPrediction() const { return prediction_; }

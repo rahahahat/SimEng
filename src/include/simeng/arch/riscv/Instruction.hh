@@ -83,6 +83,17 @@ enum class InsnType : uint32_t {
   isRVVConf = 1 << 14,
 };
 
+/***/
+struct vtype_reg {
+  uint8_t sew;
+  uint8_t vill;
+  uint8_t vma;
+  uint8_t vta;
+  uint8_t vlmul;
+};
+
+struct vtype_reg decode_vtype(uint64_t reg);
+
 /** The maximum number of source registers any supported RISC-V instruction
  * can have. */
 const uint8_t MAX_SOURCE_REGISTERS = 3;
@@ -178,6 +189,9 @@ class Instruction : public simeng::Instruction {
    * is ready to execute. */
   bool canExecute() const override;
 
+  /***/
+  void decode(uint64_t sysreg = 0) override;
+
   /** Execute the instruction. */
   void execute() override;
 
@@ -198,11 +212,10 @@ class Instruction : public simeng::Instruction {
    * processing this instruction. */
   InstructionException getException() const;
 
- private:
-  /** Process the instruction's metadata to determine source/destination
-   * registers. */
-  void decode();
+  /***/
+  void writeback(simeng::RegisterFileSet& rfs) override;
 
+ private:
   /** */
   void decode_rvv();
 
@@ -261,6 +274,8 @@ class Instruction : public simeng::Instruction {
 
   int64_t vectorImmediates[4];
   uint8_t vecImmCount = 0;
+
+  uint16_t eew = 0;
 
   /** An array of generated output results. Each entry corresponds to a
    * `destinationRegisters` entry. */

@@ -41,6 +41,7 @@ struct rvv_insn_desc {
   unsigned int id;
   unsigned int opcode;
   uint32_t encoding;
+  uint16_t eew = 0;
   uint8_t implicit_src_cnt;
   uint8_t implicit_dest_cnt;
   uint8_t opr_cnt;

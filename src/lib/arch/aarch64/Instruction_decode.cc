@@ -181,7 +181,7 @@ std::vector<Register> getZARowVectors(arm64_reg reg, const uint64_t SVL_bits) {
 /******************
  * DECODING LOGIC
  *****************/
-void Instruction::decode() {
+void Instruction::decode(uint64_t sysreg = 0) {
   if (metadata_.id == ARM64_INS_INVALID) {
     exception_ = InstructionException::EncodingUnallocated;
     exceptionEncountered_ = true;

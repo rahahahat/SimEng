@@ -19,13 +19,17 @@ namespace riscv {
  * WARNING: this conversion is FRAGILE, and relies on the structure of the
  * `riscv_reg` enum. Updates to the Capstone library version may cause this to
  * break. */
-Register csRegToRegister(unsigned int reg) {
+Register csRegToRegister(unsigned int reg, const riscv::Architecture& arch) {
   // Check from top of the range downwards
 
   // Metadata could produce either 64-bit floating point register or 32-bit
   // floating point register. Map both encodings to the same SimEng register.
   // Only 64-bit registers are supported
 
+  if (reg - 1 == riscv_sysreg::RISCV_V_SYSREG_VTYPE) {
+    return {RegisterType::SYSTEM,
+            static_cast<uint16_t>(arch.getSystemRegisterTag(reg))};
+  }
   // Modulus ensures only 64 bit registers are recognised
   if (RISCV_REG_F31_64 >= reg && reg >= RISCV_REG_F0_64 && reg % 2 == 0) {
     // Register ft0.64 has encoding 34 with subsequent encodings interleaved
@@ -90,7 +94,7 @@ void Instruction::decode_rvv() {
           case 0x1: {  // reg
             std::cout << "Decoding reg: " << op.reg << std::endl;
             sourceRegisters_[sourceRegisterCount_] =
-                csRegToRegister(op.reg + 1);
+                csRegToRegister(op.reg + 1, architecture_);
             if (op.reg == 0) {
               // Catch zero register references and pre-complete those operands
               sourceValues_[sourceRegisterCount_] = RegisterValue(0, 8);
@@ -138,7 +142,8 @@ void Instruction::decode_rvv() {
         simeng::cs_riscv_op op = metadata_.operands[x];
         switch (op.type) {
           case 0x1: {  // reg
-            sourceRegisters_[sourceRegisterCount_] = csRegToRegister(op.reg);
+            sourceRegisters_[sourceRegisterCount_] =
+                csRegToRegister(op.reg + 1, architecture_);
             if (op.reg == 0) {
               // Catch zero register references and pre-complete those operands
               sourceValues_[sourceRegisterCount_] = RegisterValue(0, 8);
@@ -174,7 +179,7 @@ void Instruction::decode_rvv() {
 /******************
  * DECODING LOGIC
  *****************/
-void Instruction::decode() {
+void Instruction::decode(uint64_t sysreg) {
   if (metadata_.id == RISCV_INS_INVALID) {
     exception_ = InstructionException::EncodingUnallocated;
     exceptionEncountered_ = true;
@@ -277,7 +282,8 @@ void Instruction::decode() {
            metadata_.opcode != Opcode::RISCV_JALR) ||
           (isInstruction(InsnType::isStore) &&
            !isInstruction(InsnType::isAtomic))) {
-        sourceRegisters_[sourceRegisterCount_] = csRegToRegister(op.reg);
+        sourceRegisters_[sourceRegisterCount_] =
+            csRegToRegister(op.reg, architecture_);
 
         if (sourceRegisters_[sourceRegisterCount_] ==
             RegisterType::ZERO_REGISTER) {
@@ -306,9 +312,10 @@ void Instruction::decode() {
          * that the second result is discarded
          *
          */
-        if (csRegToRegister(op.reg) != RegisterType::ZERO_REGISTER) {
+        if (csRegToRegister(op.reg, architecture_) !=
+            RegisterType::ZERO_REGISTER) {
           destinationRegisters_[destinationRegisterCount_] =
-              csRegToRegister(op.reg);
+              csRegToRegister(op.reg, architecture_);
 
           destinationRegisterCount_++;
         }
@@ -318,7 +325,8 @@ void Instruction::decode() {
       // the first is a source register
       if (op.type == RISCV_OP_REG) {
         //  Second or third register operand
-        sourceRegisters_[sourceRegisterCount_] = csRegToRegister(op.reg);
+        sourceRegisters_[sourceRegisterCount_] =
+            csRegToRegister(op.reg, architecture_);
 
         if (sourceRegisters_[sourceRegisterCount_] ==
             RegisterType::ZERO_REGISTER) {
@@ -332,7 +340,8 @@ void Instruction::decode() {
       } else if (op.type == RISCV_OP_MEM) {
         // Memory operand
         // Extract reg number from capstone object
-        sourceRegisters_[sourceRegisterCount_] = csRegToRegister(op.mem.base);
+        sourceRegisters_[sourceRegisterCount_] =
+            csRegToRegister(op.mem.base, architecture_);
         sourceImm_ = op.mem.disp;
         sourceRegisterCount_++;
         sourceOperandsPending_++;

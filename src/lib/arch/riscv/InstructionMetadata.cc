@@ -58,6 +58,7 @@ InstructionMetadata::InstructionMetadata(struct rvv_insn_desc insn_desc,
   std::memcpy(operands, insn_desc.operands.data(),
               sizeof(simeng::cs_riscv_op) * operandCount);
   isRVV = true;
+  eew = insn_desc.eew;
   std::cout << "Predecoding RVV" << std::endl;
   std::cout << insn_desc.mnemonic << " " << insn_desc.operand_str << std::endl;
   std::cout << "Opocode: " << std::hex << insn_desc.opcode << std::dec

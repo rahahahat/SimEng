@@ -20,7 +20,7 @@ Instruction::Instruction(const Architecture& architecture,
   dataSize_ = microOpInfo.dataSize;
   isLastMicroOp_ = microOpInfo.isLastMicroOp;
   microOpIndex_ = microOpInfo.microOpIndex;
-  decode();
+  // decode();
 }
 
 Instruction::Instruction(const Architecture& architecture,
