@@ -30,10 +30,11 @@ rvv_insn_desc rvv_ldst_ufaultfirst_predecode(const uint32_t insn) {
   return rvv_insn_desc{
       .id = RVV_INSN_TYPE::RVV_LD_USTRIDEFF,
       .opcode = opcode,
+      .encoding = insn,
+      .eew = acw,
       .implicit_src_cnt = 3,
       .implicit_dest_cnt = 1,
       .opr_cnt = 4,
-      .eew = acw,
       .insn_len = 4,
       .mnemonic = mnemonic,
       .operand_str = opstr,

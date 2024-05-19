@@ -22,6 +22,10 @@ rvv_insn_desc rvv_ldst_uindexed_predecode(const uint32_t insn);
 rvv_insn_desc rvv_ldst_oindexed_predecode(const uint32_t insn);
 rvv_insn_desc rvv_ldst_ufaultfirst_predecode(const uint32_t insn);
 rvv_insn_desc rvv_ldst_wholereg_predecode(const uint32_t insn);
+rvv_insn_desc rvv_vid_predecode(const uint32_t insn);
+rvv_insn_desc rvv_vsll_predecode(const uint32_t insn, uint32_t match);
+rvv_insn_desc rvv_vadd_predecode(const uint32_t insn, uint32_t func3);
+rvv_insn_desc rvv_vadd_predecode(const uint32_t insn, uint32_t func3);
 
 rvv_insn_desc predecode_mopc_lfp_sfp(const uint32_t insn);
 rvv_insn_desc predecode_mopc_opv(const uint32_t insn);

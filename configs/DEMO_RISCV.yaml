@@ -5,7 +5,7 @@
 Core:
   ISA: rv64
   Compressed: True
-  Simulation-Mode: outoforder
+  Simulation-Mode: emulation
   Clock-Frequency-GHz: 2.5
   Timer-Frequency-MHz: 200
 Fetch:
@@ -36,7 +36,7 @@ L1-Data-Memory:
 L1-Instruction-Memory:
   Interface-Type: Flat
 LSQ-L1-Interface:
-  Access-Latency: 4
+  Access-Latency: 20
   Exclusive: False
   Load-Bandwidth: 32
   Store-Bandwidth: 16

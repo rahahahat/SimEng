@@ -19,8 +19,27 @@ std::array<std::string, 4> eew_disasm = {"8", "16", "32", "64"};
 rvv_insn_desc predecode_mopc_opv(const uint32_t insn) {
   uint16_t func3 = GET_BIT_SS(insn, 12, 14);
   switch (func3) {
+    case 0x0:
+      if (GET_BIT_SS(insn, 26, 31) == 0x0) {
+        return rvv_vadd_predecode(insn, func3);
+      }
+      return rvv_insn_desc{};
+    case 0x2:
+      if (GET_BIT_SS(insn, 15, 19) == 0x11 && GET_BIT_SS(insn, 20, 24) == 0x0 && GET_BIT_SS(insn, 26, 31) == 0x14) {
+        return rvv_vid_predecode(insn);
+      } else if (GET_BIT_SS(insn, 26, 31) == 0x2d) {
+        return rvv_vmacc_predecode(insn, func3);
+      }
+      return rvv_insn_desc{};
+    case 0x3:
+      if (GET_BIT_SS(insn, 26, 31) == 0x25) //vsll.vi {
+          return rvv_vsll_predecode(insn, MATCH_VSLL_VI);
+      }
+      return rvv_insn_desc{};
     case 0x7:
       return rvv_vsetxvlx_predecode(insn);
+    default:
+      return rvv_insn_desc{};
   }
 }
 

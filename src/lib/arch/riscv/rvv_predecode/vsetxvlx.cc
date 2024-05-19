@@ -30,6 +30,8 @@ rvv_insn_desc rvv_vsetxvlx_predecode(const uint32_t insn) {
       uint16_t zimm = GET_BIT_SS(insn, 20, 29);
       desc = {.id = RVV_INSN_TYPE::RVV_VSETXVLX,
               .opcode = MATCH_VSETIVLI,
+              .encoding = insn,
+              .eew = 0,
               .implicit_src_cnt = 2,
               .implicit_dest_cnt = 3,
               .opr_cnt = 5,
@@ -55,6 +57,8 @@ rvv_insn_desc rvv_vsetxvlx_predecode(const uint32_t insn) {
       uint16_t rs2 = GET_BIT_SS(insn, 20, 24);
       desc = {.id = RVV_INSN_TYPE::RVV_VSETXVLX,
               .opcode = MATCH_VSETVL,
+              .encoding = insn,
+              .eew = 0,
               .implicit_src_cnt = 2,
               .implicit_dest_cnt = 3,
               .opr_cnt = 5,
@@ -80,6 +84,8 @@ rvv_insn_desc rvv_vsetxvlx_predecode(const uint32_t insn) {
       uint16_t zimm = GET_BIT_SS(insn, 20, 30);
       desc = {.id = RVV_INSN_TYPE::RVV_VSETXVLX,
               .opcode = MATCH_VSETVLI,
+              .encoding = insn,
+              .eew = 0,
               .implicit_src_cnt = 2,
               .implicit_dest_cnt = 3,
               .opr_cnt = 5,

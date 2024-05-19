@@ -1,15 +1,20 @@
 #pragma once
 
 #include <vector>
+#include <functional>
 
 #include "capstone/capstone.h"
 #include "simeng/BranchPredictor.hh"
 #include "simeng/Register.hh"
 #include "simeng/RegisterValue.hh"
+#include "simeng/RegisterFileSet.hh"
 #include "simeng/memory/MemoryInterface.hh"
 #include "simeng/span.hh"
 
 using InstructionException = short;
+
+typedef std::function<const simeng::RegisterValue& (simeng::Register)> GetSysRegFunc;
+
 
 namespace simeng {
 
@@ -110,7 +115,7 @@ class Instruction {
   virtual void execute() = 0;
 
   /***/
-  virtual void decode(uint64_t sysreg = 0) = 0;
+  virtual void decode() = 0;
 
   /** Get this instruction's supported set of ports. */
   virtual const std::vector<uint16_t>& getSupportedPorts() = 0;
@@ -146,19 +151,19 @@ class Instruction {
 
   /***/
   virtual void writeback(simeng::RegisterFileSet& rfs) {
-    auto results = getResults();
-    auto destinations = getDestinationRegisters();
-    if (isStoreData()) {
-      for (size_t i = 0; i < results.size(); i++) {
-        auto reg = destinations[i];
-        rfs.set(reg, results[i]);
-      }
-    } else {
-      for (size_t i = 0; i < results.size(); i++) {
-        auto reg = destinations[i];
-        rfs.set(reg, results[i]);
-      }
-    }
+    // auto results = getResults();
+    // auto destinations = getDestinationRegisters();
+    // if (isStoreData()) {
+    //   for (size_t i = 0; i < results.size(); i++) {
+    //     auto reg = destinations[i];
+    //     rfs.set(reg, results[i]);
+    //   }
+    // } else {
+    //   for (size_t i = 0; i < results.size(); i++) {
+    //     auto reg = destinations[i];
+    //     rfs.set(reg, results[i]);
+    //   }
+    // }
   };
 
   /***/
@@ -231,6 +236,11 @@ class Instruction {
 
   /** Get arbitrary micro-operation index. */
   int getMicroOpIndex() const { return microOpIndex_; }
+
+  /***/
+  void setGetSysRegFunc(GetSysRegFunc fn) {
+    getSysRegFunc_ = fn;
+  }
 
  protected:
   /** */
@@ -349,6 +359,8 @@ class Instruction {
   /** An arbitrary index value for the micro-operation. Its use is based on the
    * implementation of specific micro-operations. */
   int microOpIndex_ = 0;
+  /***/
+  GetSysRegFunc getSysRegFunc_;
 };
 
 }  // namespace simeng

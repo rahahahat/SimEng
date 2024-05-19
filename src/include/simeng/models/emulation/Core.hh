@@ -79,6 +79,9 @@ class Core : public simeng::Core {
 
   /** The number of branches executed. */
   uint64_t branchesExecuted_ = 0;
+
+  /***/
+  uint64_t seqId_ = 0;
 };
 
 }  // namespace emulation

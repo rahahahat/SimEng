@@ -75,6 +75,9 @@ Register decodeVecReg(unsigned int reg) {
  *****************/
 void Instruction::decode_rvv() {
   uint64_t vlen = architecture_.vlen;
+  uint64_t vtype_enc = getSysRegFunc_(csRegToRegister(riscv_sysreg::RISCV_V_SYSREG_VTYPE, architecture_)).get<uint64_t>();
+  vtype_reg vtype = decode_vtype(vtype_enc);
+
   switch (metadata_.id) {
     case RVV_INSN_TYPE::RVV_LD_USTRIDE:     // vle
     case RVV_INSN_TYPE::RVV_LD_STRIDED:     // vlse
@@ -84,15 +87,17 @@ void Instruction::decode_rvv() {
     case RVV_INSN_TYPE::RVV_LD_WHOLEREG: {  // vlxre
       if (metadata_.operands[0].reg != 0) {
         // Catch zero register references and pre-complete those operands
-        destinationRegisters_[destinationRegisterCount_] =
-            decodeVecReg(metadata_.operands[0].reg);
-        destinationRegisterCount_++;
+        uint16_t start_reg = metadata_.operands[0].reg;
+        for (uint8_t x = 0; x < vtype.vlmul; x++) {
+          destinationRegisters_[destinationRegisterCount_] =
+              decodeVecReg(start_reg + x);
+          destinationRegisterCount_++;
+        }
       }
       for (uint8_t x = 1; x < metadata_.operandCount; x++) {
         simeng::cs_riscv_op op = metadata_.operands[x];
         switch (op.type) {
           case 0x1: {  // reg
-            std::cout << "Decoding reg: " << op.reg << std::endl;
             sourceRegisters_[sourceRegisterCount_] =
                 csRegToRegister(op.reg + 1, architecture_);
             if (op.reg == 0) {
@@ -110,14 +115,19 @@ void Instruction::decode_rvv() {
             break;
           }
           case 0x4: {  // vreg
-            sourceRegisters_[sourceRegisterCount_] = decodeVecReg(op.reg);
-            if (op.reg == 0) {
-              // Catch zero register references and pre-complete those operands
-              sourceValues_[sourceRegisterCount_] = RegisterValue(0, vlen);
-              sourceOperandsPending_--;
+
+            uint16_t lmul = !eew ? vtype.vlmul : (eew /vtype.sew) * vtype.vlmul; 
+            for (uint16_t y = 0; y < lmul; y++) {
+              uint64_t reg_ = op.reg + y;
+              sourceRegisters_[sourceRegisterCount_] = decodeVecReg(reg_);
+              if (op.reg == 0) {
+                // Catch zero register references and pre-complete those operands
+                sourceValues_[sourceRegisterCount_] = RegisterValue(0, vlen);
+                sourceOperandsPending_--;
+              }
+              sourceRegisterCount_++;
+              sourceOperandsPending_++;
             }
-            sourceRegisterCount_++;
-            sourceOperandsPending_++;
             break;
           }
           case 0x5: {  // sysreg
@@ -159,14 +169,21 @@ void Instruction::decode_rvv() {
             break;
           }
           case 0x4: {  // vreg
-            sourceRegisters_[sourceRegisterCount_] = decodeVecReg(op.reg);
-            if (op.reg == 0) {
-              // Catch zero register references and pre-complete those operands
-              sourceValues_[sourceRegisterCount_] = RegisterValue(0, vlen);
-              sourceOperandsPending_--;
+            uint16_t lmul = vtype.vlmul;
+            if (x != 0) {
+              lmul = (eew / vtype.sew) * lmul;
             }
-            sourceRegisterCount_++;
-            sourceOperandsPending_++;
+            for (int y = 0; y < lmul; y++) {
+              uint64_t reg_ = op.reg + y;
+              sourceRegisters_[sourceRegisterCount_] = decodeVecReg(reg_);
+              if (reg_ == 0) {
+                // Catch zero register references and pre-complete those operands
+                sourceValues_[sourceRegisterCount_] = RegisterValue(0, vlen);
+                sourceOperandsPending_--;
+              }
+              sourceRegisterCount_++;
+              sourceOperandsPending_++;
+            }
             break;
           }
         }
@@ -179,14 +196,12 @@ void Instruction::decode_rvv() {
 /******************
  * DECODING LOGIC
  *****************/
-void Instruction::decode(uint64_t sysreg) {
+void Instruction::decode() {
   if (metadata_.id == RISCV_INS_INVALID) {
     exception_ = InstructionException::EncodingUnallocated;
     exceptionEncountered_ = true;
     return;
   }
-
-  std::cout << "Comes here" << std::endl;
 
   if (metadata_.id > RVV_INSN_TYPE::RVV_INSNS &&
       metadata_.id < RVV_INSN_TYPE::RVV_INSN_END) {
@@ -197,10 +212,13 @@ void Instruction::decode(uint64_t sysreg) {
     } else if (metadata_.id > RVV_STORE && metadata_.id < RVV_CONF) {
       setInstructionType(InsnType::isStore);
       setInstructionType(InsnType::isRVVStore);
+    } else if (metadata_.id == RVV_INSN_TYPE::RVV_VMACCV) {
+      setInstructionType(InsnType::isMultiply);
+    } else if (metadata_.id == RVV_INSN_TYPE::RVV_VSLLV) {
+      setInstructionType(InsnType::isShift);
     } else {
       setInstructionType(InsnType::isRVVConf);
     }
-    std::cout << "Decoding RVV" << std::endl;
     decode_rvv();
     return;
   }

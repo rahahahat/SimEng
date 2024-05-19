@@ -178,14 +178,9 @@ void Instruction::executeRVVLoadStore() {
   uint16_t vlen = architecture_.vlen;
   switch (metadata_.id) {
     case RVV_INSN_TYPE::RVV_LD_USTRIDE: {
-      uint16_t eew = 8;
-      get_eew(eew, VLE);
-      std::cout << "EEW: " << eew << std::endl;
       std::vector<char> result((vlen / 8), '\0');
       for (uint16_t x = 0; x < vlen / eew; x++) {
         uint16_t idx = x * (eew / 8);
-        std::cout << "MemData " << std::hex << memoryData_[x].get<uint64_t>()
-                  << std::dec << std::endl;
         std::memcpy(&result[idx], memoryData_[x].getAsVector<char>(),
                     (eew / 8));
       }
@@ -204,16 +199,91 @@ void Instruction::execute() {
          "provided");
 
   // Implementation of rv64imafdc according to the v. 20191213 unprivileged spec
-
+  vtype_reg vtype = decode_vtype(getSysRegFunc_({RegisterType::SYSTEM,
+            static_cast<uint16_t>(architecture_.getSystemRegisterTag(RISCV_V_SYSREG_VTYPE))}).get<uint64_t>());
   if (isInstruction(InsnType::isRVV)) {
     if (isInstruction(InsnType::isRVVLoad) ||
         isInstruction(InsnType::isRVVStore)) {
-      std::cout << "Execute RVV L/S" << std::endl;
       executed_ = true;
       executeRVVLoadStore();
-      std::cout << "Done executing: " << metadata_.opcode << "  -  "
-                << metadata_.id << std::endl;
       return;
+    }
+
+    switch (metadata_.opcode)
+    {
+    case MATCH_VID_V:
+      for (uint8_t m = 0; m < vtype.vlmul; m++) {
+        std::vector<char> vec(architecture_.vlen / 8, '\0');
+        for (uint8_t x = 0; x < architecture_.vlen / vtype.sew; x++) {
+          uint64_t i = ((architecture_.vlen / vtype.sew) * m) + x;
+          std::memcpy(&vec[vtype.sew * x], &i, vtype.sew);
+        }
+        results_[m] = RegisterValue(vec.data(), vec.size());
+      }
+    break;
+    case MATCH_VADD_VX:
+      uint64_t rs1 = sourceValues_[vtype.vlmul].get<uint64_t>();
+      for (uint8_t m = 0; m < vtype.vlmul; m++) {
+        const char *src = sourceValues_[m].getAsVector<char>();
+        std::vector<char> vec(architecture_.vlen / 8, '\0');
+        for (uint8_t x = 0; x < architecture_.vlen / vtype.sew; x++) {
+          uint64_t velem = 0;
+          std::memcpy(&velem, (const void*)src[x * vtype.sew], vtype.sew);
+          velem += rs1;
+          std::memcpy(&vec[vtype.sew * x], &velem, vtype.sew);
+        }
+        results_[m] = RegisterValue(vec.data(), vec.size());
+      }
+    break;
+    case MATCH_VADD_VV:
+      for (uint8_t m = 0; m < vtype.vlmul; m++) {
+        const char *src1 = sourceValues_[m].getAsVector<char>();
+        const char *src2 = sourceValues_[m + vtype.vlmul].getAsVector<char>();
+        std::vector<char> vec(architecture_.vlen / 8, '\0');
+        for (uint8_t x = 0; x < architecture_.vlen / vtype.sew; x++) {
+          uint64_t v_el1 = 0;
+          uint64_t v_el2 = 0;
+          std::memcpy(&v_el1, (const void*)src1[x * vtype.sew], vtype.sew);
+          std::memcpy(&v_el2, (const void*)src2[x * vtype.sew], vtype.sew);
+          v_el1 += v_el2;
+          std::memcpy(&vec[vtype.sew * x], &v_el1, vtype.sew);
+        }
+        results_[m] = RegisterValue(vec.data(), vec.size());
+      }
+    break;
+    case MATCH_VSLL_VI:
+      uint64_t uimm = sourceValues_[vtype.vlmul].get<uint64_t>();
+      for (uint8_t m = 0; m < vtype.vlmul; m++) {
+        const char *src = sourceValues_[m].getAsVector<char>();
+        std::vector<char> vec(architecture_.vlen / 8, '\0');
+        for (uint8_t x = 0; x < architecture_.vlen / vtype.sew; x++) {
+          uint64_t velem = 0;
+          std::memcpy(&velem, (const void*)src[x * vtype.sew], vtype.sew);
+          velem <<= uimm;
+          std::memcpy(&vec[vtype.sew * x], &velem, vtype.sew);
+        }
+        results_[m] = RegisterValue(vec.data(), vec.size());
+      }
+    break;
+    case MATCH_VMACC_VV:
+      for (uint8_t m = 0; m < vtype.vlmul; m++) {
+        const char* src0 = sourceValues_[m].getAsVector<char>();
+        const char *src1 = sourceValues_[m + (vtype.vlmul)].getAsVector<char>();
+        const char *src2 = sourceValues_[m + (vtype.vlmul * 2)].getAsVector<char>();
+        std::vector<char> vec(architecture_.vlen / 8, '\0');
+        for (uint8_t x = 0; x < architecture_.vlen / vtype.sew; x++) {
+          uint64_t s1 = 0; uint64_t s2 = 0; uint64_t s3 = 0;
+          std::memcpy(&s1, (const void*)src0[x * vtype.sew], vtype.sew);
+          std::memcpy(&s2, (const void*)src1[x * vtype.sew], vtype.sew);
+          std::memcpy(&s2, (const void*)src2[x * vtype.sew], vtype.sew);
+          s1 += (s2 * s3);
+          std::memcpy(&vec[vtype.sew * x], &s1, vtype.sew);
+        }
+        results_[m] = RegisterValue(vec.data(), vec.size());
+      }
+    break;
+    default:
+      return executionNYI();
     }
     return executionNYI();
   }

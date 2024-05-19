@@ -1034,13 +1034,13 @@ void ModelConfig::postValidation() {
   // Currently, only outoforder core types can use non-Flat L1-Data-Memory
   // interfaces
   if (simMode != "outoforder") {
-    std::string l1dType =
-        configTree_["L1-Data-Memory"]["Interface-Type"].as<std::string>();
-    if (l1dType != "Flat")
-      invalid_ << "\t- Only a Flat L1-Data-Memory Interface-Type may be used "
-                  "with the "
-               << simMode << " Simulation-Mode. Interface-Type used is "
-               << l1dType << "\n";
+    // std::string l1dType =
+    //     configTree_["L1-Data-Memory"]["Interface-Type"].as<std::string>();
+    // if (l1dType != "Flat")
+    //   invalid_ << "\t- Only a Flat L1-Data-Memory Interface-Type may be used "
+    //               "with the "
+    //            << simMode << " Simulation-Mode. Interface-Type used is "
+    //            << l1dType << "\n";
   }
 
   // Currently, only a Flat L1-Instruction-Memory:Interface-Type is supported

@@ -373,7 +373,7 @@ class Instruction : public simeng::Instruction {
  private:
   /** Process the instruction's metadata to determine source/destination
    * registers. */
-  void decode(uint64_t sysreg = 0) override;
+  void decode() override;
 
   /** Update the instruction's identifier with an additional field. */
   constexpr void setInstructionType(InsnType identifier) {

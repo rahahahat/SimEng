@@ -15,11 +15,16 @@ namespace riscv {
   ((src >> s_pos) & (0xFFFFFFFF >> (31 - (e_pos - s_pos))))
 
 struct vtype_reg decode_vtype(uint64_t reg) {
+  //   uint8_t sew;
+  // uint8_t vill;
+  // uint8_t vma;
+  // uint8_t vta;
+  // uint8_t vlmul;
   return vtype_reg{
+      .sew = (uint8_t)GET_BIT_SS(reg, 0, 2),
       .vill = (uint8_t)GET_BIT(reg, 63),
       .vma = (uint8_t)GET_BIT(reg, 7),
       .vta = (uint8_t)GET_BIT(reg, 6),
-      .sew = (uint8_t)GET_BIT_SS(reg, 0, 2),
       .vlmul = (uint8_t)GET_BIT_SS(reg, 3, 5),
   };
 };
@@ -30,7 +35,8 @@ Instruction::Instruction(const Architecture& architecture,
       metadata_(metadata),
       exception_(metadata.getMetadataException()) {
   exceptionEncountered_ = metadata.getMetadataExceptionEncountered();
-  // decode();
+  eew = metadata_.eew;
+  decode();
 }
 
 Instruction::Instruction(const Architecture& architecture,
@@ -39,6 +45,7 @@ Instruction::Instruction(const Architecture& architecture,
     : architecture_(architecture), metadata_(metadata) {
   exception_ = exception;
   exceptionEncountered_ = true;
+  eew = metadata_.eew;
 }
 
 const span<Register> Instruction::getSourceRegisters() const {

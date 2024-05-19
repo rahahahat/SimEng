@@ -96,11 +96,11 @@ struct vtype_reg decode_vtype(uint64_t reg);
 
 /** The maximum number of source registers any supported RISC-V instruction
  * can have. */
-const uint8_t MAX_SOURCE_REGISTERS = 3;
+const uint8_t MAX_SOURCE_REGISTERS = 26;
 
 /** The maximum number of destination registers any supported RISC-V
  * instruction can have. */
-const uint8_t MAX_DESTINATION_REGISTERS = 1;
+const uint8_t MAX_DESTINATION_REGISTERS = 8;
 
 /** A basic RISC-V implementation of the `Instruction` interface. */
 class Instruction : public simeng::Instruction {
@@ -190,7 +190,7 @@ class Instruction : public simeng::Instruction {
   bool canExecute() const override;
 
   /***/
-  void decode(uint64_t sysreg = 0) override;
+  void decode() override;
 
   /** Execute the instruction. */
   void execute() override;
@@ -213,7 +213,7 @@ class Instruction : public simeng::Instruction {
   InstructionException getException() const;
 
   /***/
-  void writeback(simeng::RegisterFileSet& rfs) override;
+  // void writeback(simeng::RegisterFileSet& rfs) override;
 
  private:
   /** */
