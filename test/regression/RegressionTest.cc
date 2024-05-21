@@ -17,7 +17,7 @@ RegressionTest::~RegressionTest() { delete[] code_; }
 
 void RegressionTest::TearDown() {
   if (!programFinished_) {
-    std::cout << testing::internal::GetCapturedStdout();
+    // std::cout << testing::internal::GetCapturedStdout();
   }
 }
 
@@ -138,7 +138,8 @@ void RegressionTest::run(const char* source, const char* triple,
   }
 
   // stdout_ = testing::internal::GetCapturedStdout();
-  // std::cout << stdout_;
+  stdout_ = "";
+  std::cout << stdout_;
 
   programFinished_ = true;
 }

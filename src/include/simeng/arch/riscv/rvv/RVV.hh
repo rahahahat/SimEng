@@ -42,11 +42,14 @@ enum RVV_INSN_TYPE {
   RVV_INSN_END,
 };
 
+enum LMUL_CALC_TYPE { SYSREG, OVERRIDE, CALC };
+
 struct rvv_insn_desc {
   unsigned int id;
   unsigned int opcode;
   uint32_t encoding;
   uint16_t eew = 0;
+  LMUL_CALC_TYPE lmul_type;
   uint8_t implicit_src_cnt;
   uint8_t implicit_dest_cnt;
   uint8_t opr_cnt;
@@ -56,6 +59,10 @@ struct rvv_insn_desc {
   std::vector<uint16_t> imp_srcs;
   std::vector<uint16_t> imp_dests;
   std::vector<simeng::cs_riscv_op> operands;
+};
+
+uint16_t inline calc_emul(uint16_t eew, uint16_t sew, uint16_t lmul) {
+  return (eew / sew) * lmul;
 };
 
 }  // namespace riscv

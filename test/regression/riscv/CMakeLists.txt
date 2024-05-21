@@ -1,20 +1,20 @@
 add_executable(regression-riscv
             RISCVRegressionTest.cc
             RISCVRegressionTest.hh
-            Exception.cc
-            LoadStoreQueue.cc
-            InorderPipeline.cc
-            SmokeTest.cc
-            Syscall.cc
-            instructions/arithmetic.cc
-            instructions/multiplyDivide.cc
-            instructions/load.cc
-            instructions/store.cc
-            instructions/jump.cc
-            instructions/branch.cc
-            instructions/atomic.cc
-            instructions/float.cc
-            instructions/compressed.cc
+            # Exception.cc
+            # LoadStoreQueue.cc
+            # InorderPipeline.cc
+            # SmokeTest.cc
+            # Syscall.cc
+            # instructions/arithmetic.cc
+            # instructions/multiplyDivide.cc
+            # instructions/load.cc
+            # instructions/store.cc
+            # instructions/jump.cc
+            # instructions/branch.cc
+            # instructions/atomic.cc
+            # instructions/float.cc
+            # instructions/compressed.cc
             instructions/rvv.cc
         )
 

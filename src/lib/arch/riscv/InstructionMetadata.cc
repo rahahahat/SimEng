@@ -53,15 +53,17 @@ InstructionMetadata::InstructionMetadata(struct rvv_insn_desc insn_desc,
 
   std::memcpy(implicitSources, insn_desc.imp_srcs.data(),
               sizeof(uint16_t) * implicitSourceCount);
-  std::memcpy(implicitDestinations, insn_desc.imp_dests.data(),
-              sizeof(uint16_t) * implicitDestinationCount);
+  if (insn_desc.implicit_dest_cnt) {
+    std::memcpy(implicitDestinations, insn_desc.imp_dests.data(),
+                sizeof(uint16_t) * implicitDestinationCount);
+  }
   std::memcpy(operands, insn_desc.operands.data(),
               sizeof(simeng::cs_riscv_op) * operandCount);
   isRVV = true;
   eew = insn_desc.eew;
   std::cout << "Predecoding RVV" << std::endl;
   std::cout << insn_desc.mnemonic << " " << insn_desc.operand_str << std::endl;
-  std::cout << "Opocode: " << std::hex << insn_desc.opcode << std::dec
+  std::cout << "Opcode: " << std::hex << insn_desc.opcode << std::dec
             << std::endl;
   std::cout << std::endl;
 }

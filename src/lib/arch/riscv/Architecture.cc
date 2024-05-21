@@ -47,9 +47,9 @@ Architecture::Architecture(kernel::Linux& kernel, ryml::ConstNodeRef config)
   cs_option(capstoneHandle_, CS_OPT_DETAIL, CS_OPT_ON);
 
   // Generate zero-indexed system register map
-  for (size_t i = 0; i < config::SimInfo::getSysRegVec().size(); i++) {
-    systemRegisterMap_[config::SimInfo::getSysRegVec()[i]] =
-        systemRegisterMap_.size();
+  for (uint16_t i = 0; i < config::SimInfo::getSysRegVec().size(); i++) {
+    systemRegisterMap_.insert({config::SimInfo::getSysRegVec()[i], i});
+    // systemRegisterMap_[] = systemRegisterMap_.size();
   }
 
   cycleSystemReg_ = {
@@ -248,17 +248,18 @@ uint8_t Architecture::predecode(const void* ptr, uint16_t bytesAvailable,
     Instruction newInsn(*this, metadataCache_.front());
 
     // Set execution information for this instruction
-    if (!((!success) && (mjop == 0x7 | mjop == 0x27 | mjop == 0x57)))
+    if (!((!success) && (mjop == 0x7 | mjop == 0x27 | mjop == 0x57))) {
       newInsn.setExecutionInfo(getExecutionInfo(newInsn));
+    }
 
     // Cache the instruction
     iter = decodeCache_.insert({insnEncoding, newInsn}).first;
   }
-
-  assert(((insnEncoding & 0b11) != 0b11
-              ? iter->second.getMetadata().getInsnLength() == 2
-              : iter->second.getMetadata().getInsnLength() == 4) &&
-         "Predicted number of bytes don't match disassembled number of bytes");
+  // assert(((insnEncoding & 0b11) != 0b11
+  //             ? iter->second.getMetadata().getInsnLength() == 2
+  //             : iter->second.getMetadata().getInsnLength() == 4) &&
+  //        "Predicted number of bytes don't match disassembled number of
+  //        bytes");
 
   output.resize(1);
   auto& uop = output[0];

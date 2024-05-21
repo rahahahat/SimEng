@@ -1,20 +1,20 @@
 #pragma once
 
-#include <vector>
 #include <functional>
+#include <vector>
 
 #include "capstone/capstone.h"
 #include "simeng/BranchPredictor.hh"
 #include "simeng/Register.hh"
-#include "simeng/RegisterValue.hh"
 #include "simeng/RegisterFileSet.hh"
+#include "simeng/RegisterValue.hh"
 #include "simeng/memory/MemoryInterface.hh"
 #include "simeng/span.hh"
 
 using InstructionException = short;
 
-typedef std::function<const simeng::RegisterValue& (simeng::Register)> GetSysRegFunc;
-
+typedef std::function<const simeng::RegisterValue&(simeng::Register)>
+    GetSysRegFunc;
 
 namespace simeng {
 
@@ -238,9 +238,7 @@ class Instruction {
   int getMicroOpIndex() const { return microOpIndex_; }
 
   /***/
-  void setGetSysRegFunc(GetSysRegFunc fn) {
-    getSysRegFunc_ = fn;
-  }
+  void setGetSysRegFunc(GetSysRegFunc fn) { getSysRegFunc_ = fn; }
 
  protected:
   /** */

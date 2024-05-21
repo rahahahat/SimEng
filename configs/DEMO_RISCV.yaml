@@ -32,7 +32,7 @@ Branch-Predictor:
   Global-History-Length: 19
   RAS-entries: 1
 L1-Data-Memory:
-  Interface-Type: Fixed
+  Interface-Type: Flat
 L1-Instruction-Memory:
   Interface-Type: Flat
 LSQ-L1-Interface:

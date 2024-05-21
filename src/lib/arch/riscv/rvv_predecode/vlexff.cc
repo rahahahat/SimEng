@@ -27,24 +27,22 @@ rvv_insn_desc rvv_ldst_ufaultfirst_predecode(const uint32_t insn) {
                                   !vm ? ", v0.t" : std::string());
   uint32_t opcode = mjop | (uint32_t)width << 12 | (uint32_t)mew << 28;
 
-  return rvv_insn_desc{
-      .id = RVV_INSN_TYPE::RVV_LD_USTRIDEFF,
-      .opcode = opcode,
-      .encoding = insn,
-      .eew = acw,
-      .implicit_src_cnt = 3,
-      .implicit_dest_cnt = 1,
-      .opr_cnt = 4,
-      .insn_len = 4,
-      .mnemonic = mnemonic,
-      .operand_str = opstr,
-      .imp_srcs = {rs1, vm, riscv_sysreg::RISCV_V_SYSREG_VTYPE},
-      .imp_dests = {vd},
-      .operands = {INIT_RVV_OPR(RISCV_OP_VREG, reg, vd),
-                   INIT_RVV_OPR(RISCV_OP_REG, reg, rs1),
-                   INIT_RVV_OPR(RISCV_OP_IMM, imm, vm),
-                   INIT_RVV_OPR(RISCV_OP_SYSREG, reg,
-                                riscv_sysreg::RISCV_V_SYSREG_VTYPE)}};
+  return rvv_insn_desc{.id = RVV_INSN_TYPE::RVV_LD_USTRIDEFF,
+                       .opcode = opcode,
+                       .encoding = insn,
+                       .eew = acw,
+                       .lmul_type = LMUL_CALC_TYPE::OVERRIDE,
+                       .implicit_src_cnt = 2,
+                       .implicit_dest_cnt = 1,
+                       .opr_cnt = 3,
+                       .insn_len = 4,
+                       .mnemonic = mnemonic,
+                       .operand_str = opstr,
+                       .imp_srcs = {rs1, vm},
+                       .imp_dests = {vd},
+                       .operands = {INIT_RVV_OPR(RISCV_OP_VREG, reg, vd),
+                                    INIT_RVV_OPR(RISCV_OP_REG, reg, rs1),
+                                    INIT_RVV_OPR(RISCV_OP_IMM, imm, vm)}};
 }
 
 }  // namespace riscv

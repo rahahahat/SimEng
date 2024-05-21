@@ -25,8 +25,9 @@ Register csRegToRegister(unsigned int reg, const riscv::Architecture& arch) {
   // Metadata could produce either 64-bit floating point register or 32-bit
   // floating point register. Map both encodings to the same SimEng register.
   // Only 64-bit registers are supported
-
-  if (reg - 1 == riscv_sysreg::RISCV_V_SYSREG_VTYPE) {
+  if (reg == riscv_sysreg::RISCV_V_SYSREG_VTYPE ||
+      reg == riscv_sysreg::RISCV_V_SYSREG_VL ||
+      reg == riscv_sysreg::RISCV_V_SYSREG_VLENB) {
     return {RegisterType::SYSTEM,
             static_cast<uint16_t>(arch.getSystemRegisterTag(reg))};
   }
@@ -75,10 +76,42 @@ Register decodeVecReg(unsigned int reg) {
  *****************/
 void Instruction::decode_rvv() {
   uint64_t vlen = architecture_.vlen;
-  uint64_t vtype_enc = getSysRegFunc_(csRegToRegister(riscv_sysreg::RISCV_V_SYSREG_VTYPE, architecture_)).get<uint64_t>();
+  uint64_t vtype_enc =
+      getSysRegFunc_({RegisterType::SYSTEM,
+                      static_cast<uint16_t>(architecture_.getSystemRegisterTag(
+                          RISCV_V_SYSREG_VTYPE))})
+          .get<uint64_t>();
   vtype_reg vtype = decode_vtype(vtype_enc);
 
+  if (metadata_.id == RVV_INSN_TYPE::RVV_VSETXVLX) {
+    if (metadata_.operands[0].reg != 0) {
+      destinationRegisters_[0] =
+          csRegToRegister(metadata_.operands[0].reg, architecture_);
+      destinationRegisterCount_ = 1;
+    }
+    destinationRegisters_[destinationRegisterCount_] =
+        csRegToRegister(riscv_sysreg::RISCV_V_SYSREG_VL, architecture_);
+    destinationRegisterCount_++;
+    destinationRegisters_[destinationRegisterCount_] =
+        csRegToRegister(riscv_sysreg::RISCV_V_SYSREG_VTYPE, architecture_);
+    destinationRegisterCount_++;
+
+    sourceRegisters_[0] =
+        csRegToRegister(metadata_.operands[1].reg, architecture_);
+    if (metadata_.operands[1].reg == 0) {
+      sourceValues_[0] = RegisterValue(0, 8);
+      sourceOperandsPending_ = 0;
+    }
+    vectorImmediates[0] = metadata_.operands[2].imm;
+    vecImmCount = 1;
+    sourceRegisterCount_ = 1;
+    return;
+  };
+
   switch (metadata_.id) {
+    case RVV_INSN_TYPE::RVV_VADDV:
+    case RVV_INSN_TYPE::RVV_VSLLV:
+    case RVV_INSN_TYPE::RVV_VIDV:
     case RVV_INSN_TYPE::RVV_LD_USTRIDE:     // vle
     case RVV_INSN_TYPE::RVV_LD_STRIDED:     // vlse
     case RVV_INSN_TYPE::RVV_LD_UINDEXED:    // vluxei
@@ -86,9 +119,11 @@ void Instruction::decode_rvv() {
     case RVV_INSN_TYPE::RVV_LD_USTRIDEFF:   // vleff
     case RVV_INSN_TYPE::RVV_LD_WHOLEREG: {  // vlxre
       if (metadata_.operands[0].reg != 0) {
+        destinationRegisterCount_ = 0;
+        uint16_t mul = vtype.vlmul;
         // Catch zero register references and pre-complete those operands
         uint16_t start_reg = metadata_.operands[0].reg;
-        for (uint8_t x = 0; x < vtype.vlmul; x++) {
+        for (uint8_t x = 0; x < mul; x++) {
           destinationRegisters_[destinationRegisterCount_] =
               decodeVecReg(start_reg + x);
           destinationRegisterCount_++;
@@ -115,13 +150,18 @@ void Instruction::decode_rvv() {
             break;
           }
           case 0x4: {  // vreg
-
-            uint16_t lmul = !eew ? vtype.vlmul : (eew /vtype.sew) * vtype.vlmul; 
-            for (uint16_t y = 0; y < lmul; y++) {
+            uint16_t mul = vtype.vlmul;
+            if (metadata_.id == RVV_INSN_TYPE::RVV_LD_OINDEXED ||
+                metadata_.id == RVV_INSN_TYPE::RVV_LD_UINDEXED) {
+              float emul = ((float)eew / (float)vtype.sew) * mul;
+              mul = emul;
+            }
+            for (uint16_t y = 0; y < mul; y++) {
               uint64_t reg_ = op.reg + y;
               sourceRegisters_[sourceRegisterCount_] = decodeVecReg(reg_);
               if (op.reg == 0) {
-                // Catch zero register references and pre-complete those operands
+                // Catch zero register references and pre-complete those
+                // operands
                 sourceValues_[sourceRegisterCount_] = RegisterValue(0, vlen);
                 sourceOperandsPending_--;
               }
@@ -169,15 +209,22 @@ void Instruction::decode_rvv() {
             break;
           }
           case 0x4: {  // vreg
-            uint16_t lmul = vtype.vlmul;
-            if (x != 0) {
-              lmul = (eew / vtype.sew) * lmul;
+            uint16_t mul = vtype.vlmul;
+            if (metadata_.opcode == RVV_INSN_TYPE::RVV_ST_OINDEXED ||
+                metadata_.opcode == RVV_INSN_TYPE::RVV_ST_UINDEXED) {
+              if (x == 0) {
+                mul = vtype.vlmul;
+              } else {
+                float emul = ((float)eew / (float)vtype.sew) * mul;
+                mul = emul;
+              }
             }
-            for (int y = 0; y < lmul; y++) {
+            for (int y = 0; y < mul; y++) {
               uint64_t reg_ = op.reg + y;
               sourceRegisters_[sourceRegisterCount_] = decodeVecReg(reg_);
               if (reg_ == 0) {
-                // Catch zero register references and pre-complete those operands
+                // Catch zero register references and pre-complete those
+                // operands
                 sourceValues_[sourceRegisterCount_] = RegisterValue(0, vlen);
                 sourceOperandsPending_--;
               }
@@ -202,9 +249,17 @@ void Instruction::decode() {
     exceptionEncountered_ = true;
     return;
   }
-
   if (metadata_.id > RVV_INSN_TYPE::RVV_INSNS &&
       metadata_.id < RVV_INSN_TYPE::RVV_INSN_END) {
+    uint64_t vtype_enc =
+        getSysRegFunc_(
+            csRegToRegister(riscv_sysreg::RISCV_V_SYSREG_VTYPE, architecture_))
+            .get<uint64_t>();
+
+    if (decoded && saved_vtype == vtype_enc) return;
+    saved_vtype = vtype_enc;
+
+    vtype_reg vtype = decode_vtype(vtype_enc);
     setInstructionType(InsnType::isRVV);
     if (metadata_.id > RVV_LOAD && metadata_.id < RVV_STORE) {
       setInstructionType(InsnType::isLoad);
@@ -220,9 +275,11 @@ void Instruction::decode() {
       setInstructionType(InsnType::isRVVConf);
     }
     decode_rvv();
+    decoded = true;
     return;
   }
-
+  if (decoded) return;
+  decoded = true;
   // Identify branches
   switch (metadata_.opcode) {
     case Opcode::RISCV_BEQ:

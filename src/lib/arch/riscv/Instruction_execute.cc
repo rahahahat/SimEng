@@ -1,4 +1,5 @@
 
+#include <bitset>
 #include <cfenv>
 #include <cmath>
 #include <cstring>
@@ -15,7 +16,151 @@ namespace simeng {
 namespace arch {
 namespace riscv {
 
+#define STRING(s) #s
+
+template <typename T>
+void execute_vi_ld(uint16_t vlen, uint16_t lmul,
+                   std::array<simeng::RegisterValue, 8>& results,
+                   std::vector<simeng::RegisterValue>& memoryData) {
+  uint16_t vlenb = vlen / 8;
+  uint16_t vsewb = sizeof(T);
+  for (int x = 0; x < lmul; x++) {
+    std::vector<T> vec(vlenb / vsewb, '\0');
+    for (int y = 0; y < vlenb / vsewb; y++) {
+      uint16_t idx = (x * vsewb) + y;
+      T val = memoryData[idx].get<T>();
+      vec[y] = val;
+    }
+    results[x] = RegisterValue((const char*)vec.data(), sizeof(T) * vec.size());
+  }
+}
+
+template <typename T>
+void execute_vi_st(uint16_t vlen, uint16_t lmul,
+                   std::array<simeng::RegisterValue, 26>& sources,
+                   std::vector<simeng::RegisterValue>& memoryData) {
+  uint16_t vlenb = vlen / 8;
+  uint16_t vsewb = sizeof(T);
+
+  for (int x = 0; x < lmul; x++) {
+    const T* src = sources[x].getAsVector<T>();
+    for (int y = 0; y < vlenb / vsewb; y++) {
+      T elem = src[y];
+      memoryData.push_back(RegisterValue((const char*)&elem, sizeof(T)));
+    }
+  }
+}
+
+template <typename T>
+void do_vssl_vi(uint16_t vlen, uint16_t lmul, int64_t uimm,
+                std::array<simeng::RegisterValue, 26>& sources,
+                std::array<simeng::RegisterValue, 8>& results) {
+  uint16_t vsewb = sizeof(T);
+  uint32_t vlenb = vlen / 8;
+  for (uint8_t m = 0; m < lmul; m++) {
+    const T* src = sources[m].getAsVector<T>();
+    std::vector<T> vec(vlenb / vsewb, '\0');
+    for (uint8_t x = 0; x < vlenb / vsewb; x++) {
+      vec[x] = (src[x] << uimm);
+    }
+    results[m] = RegisterValue((const char*)vec.data(), sizeof(T) * vec.size());
+  }
+}
+
+template <typename T>
+void do_vadd_vx(uint16_t vlen, uint16_t lmul,
+                std::array<simeng::RegisterValue, 26>& sources,
+                std::array<simeng::RegisterValue, 8>& results) {
+  uint16_t vsewb = sizeof(T);
+  uint32_t vlenb = vlen / 8;
+  int64_t rs1 = sources[lmul].get<int64_t>();
+  for (uint8_t m = 0; m < lmul; m++) {
+    const T* src = sources[m].getAsVector<T>();
+    std::vector<T> vec(vlenb / vsewb, '\0');
+    for (uint8_t x = 0; x < vlenb / vsewb; x++) {
+      vec[x] = (src[x] + rs1);
+    }
+    results[m] = RegisterValue((const char*)vec.data(), sizeof(T) * vec.size());
+  }
+}
+
+template <typename T>
+void do_vadd_vv(uint16_t vlen, uint16_t lmul,
+                std::array<simeng::RegisterValue, 26>& sources,
+                std::array<simeng::RegisterValue, 8>& results) {
+  uint16_t vsewb = sizeof(T);
+  uint32_t vlenb = vlen / 8;
+  for (uint8_t m = 0; m < lmul; m++) {
+    const T* src1 = sources[m].getAsVector<T>();
+    const T* src2 = sources[lmul + m].getAsVector<T>();
+    std::vector<T> vec(vlenb / vsewb, '\0');
+    for (uint8_t x = 0; x < vlenb / vsewb; x++) {
+      vec[x] = (src1[x] + src2[x]);
+    }
+    results[m] = RegisterValue((const char*)vec.data(), sizeof(T) * vec.size());
+  }
+}
+
+template <typename T>
+void do_vmacc_vv(uint16_t vlen, uint16_t lmul,
+                 std::array<simeng::RegisterValue, 26>& sources,
+                 std::array<simeng::RegisterValue, 8>& results) {
+  uint16_t vsewb = sizeof(T);
+  uint32_t vlenb = vlen / 8;
+  for (uint8_t m = 0; m < lmul; m++) {
+    const T* src1 = sources[m].getAsVector<T>();
+    const T* src2 = sources[lmul + m].getAsVector<T>();
+    const T* src3 = sources[(lmul * 2) + m].getAsVector<T>();
+    std::vector<T> vec(vlenb / vsewb, '\0');
+    for (uint8_t x = 0; x < vlenb / vsewb; x++) {
+      vec[x] = (src1[x] + (src2[x] * src3[x]));
+    }
+    results[m] = RegisterValue((const char*)vec.data(), sizeof(T) * vec.size());
+  }
+}
+
+#define EEW_TEMPL_SWITCH(swarg, func, ...)                   \
+  switch (swarg) {                                           \
+    case 8:                                                  \
+      func<int8_t>(__VA_ARGS__);                             \
+      break;                                                 \
+    case 16:                                                 \
+      func<int16_t>(__VA_ARGS__);                            \
+      break;                                                 \
+    case 32:                                                 \
+      func<int32_t>(__VA_ARGS__);                            \
+      break;                                                 \
+    case 64:                                                 \
+      func<int64_t>(__VA_ARGS__);                            \
+      break;                                                 \
+    default:                                                 \
+      std::cerr << "Unsupported SEW/EEW in " << STRING(func) \
+                << " execute: " << swarg << std::endl;       \
+      std::exit(1);                                          \
+  }
+
+#define VI_LD_ST(swarg, func, vlen, lmul, arr, vec)                 \
+  switch (swarg) {                                                  \
+    case 8:                                                         \
+      func<uint8_t>(vlen, lmul, arr, vec);                          \
+      break;                                                        \
+    case 16:                                                        \
+      func<uint16_t>(vlen, lmul, arr, vec);                         \
+      break;                                                        \
+    case 32:                                                        \
+      func<uint32_t>(vlen, lmul, arr, vec);                         \
+      break;                                                        \
+    case 64:                                                        \
+      func<uint64_t>(vlen, lmul, arr, vec);                         \
+      break;                                                        \
+    default:                                                        \
+      std::cerr << "Unsupported SEW in VI LD/ST execute: " << swarg \
+                << std::endl;                                       \
+      std::exit(1);                                                 \
+  }
+
 /** NaN box single precision floating point values as defined in
+ *
  * riscv-spec-20191213 page 73 */
 uint64_t NanBoxFloat(float f) {
   static_assert(sizeof(float) == 4 && "Float not of size 4 bytes");
@@ -174,7 +319,7 @@ void Instruction::executionNYI() {
   return;
 }
 
-void Instruction::executeRVVLoadStore() {
+void Instruction::executeRVVLoadStore(vtype_reg& vtype) {
   uint16_t vlen = architecture_.vlen;
   switch (metadata_.id) {
     case RVV_INSN_TYPE::RVV_LD_USTRIDE: {
@@ -185,107 +330,148 @@ void Instruction::executeRVVLoadStore() {
                     (eew / 8));
       }
       results_[0] = RegisterValue(result.data(), (vlen / 8));
-      break;
-    }
+    } break;
+    case RVV_INSN_TYPE::RVV_LD_OINDEXED:
+    case RVV_INSN_TYPE::RVV_LD_UINDEXED: {
+      VI_LD_ST(vtype.sew, execute_vi_ld, architecture_.vlen, vtype.vlmul,
+               results_, memoryData_);
+    } break;
+    case RVV_INSN_TYPE::RVV_ST_OINDEXED:
+    case RVV_INSN_TYPE::RVV_ST_UINDEXED: {
+      VI_LD_ST(vtype.sew, execute_vi_st, architecture_.vlen, vtype.vlmul,
+               sourceValues_, memoryData_);
+    } break;
     default:
       return executionNYI();
   }
 }
 
 void Instruction::execute() {
+  std::cout << "0x" << std::hex << instructionAddress_ << std::dec << ": "
+            << metadata_.mnemonic << " " << metadata_.operandStr << std::endl;
   assert(!executed_ && "Attempted to execute an instruction more than once");
   assert(canExecute() &&
          "Attempted to execute an instruction before all source operands were "
          "provided");
 
   // Implementation of rv64imafdc according to the v. 20191213 unprivileged spec
-  vtype_reg vtype = decode_vtype(getSysRegFunc_({RegisterType::SYSTEM,
-            static_cast<uint16_t>(architecture_.getSystemRegisterTag(RISCV_V_SYSREG_VTYPE))}).get<uint64_t>());
+  uint64_t vtype_enc =
+      getSysRegFunc_({RegisterType::SYSTEM,
+                      static_cast<uint16_t>(architecture_.getSystemRegisterTag(
+                          RISCV_V_SYSREG_VTYPE))})
+          .get<uint64_t>();
+  vtype_reg vtype = decode_vtype(vtype_enc);
   if (isInstruction(InsnType::isRVV)) {
     if (isInstruction(InsnType::isRVVLoad) ||
         isInstruction(InsnType::isRVVStore)) {
       executed_ = true;
-      executeRVVLoadStore();
+      executeRVVLoadStore(vtype);
       return;
     }
 
-    switch (metadata_.opcode)
-    {
-    case MATCH_VID_V:
-      for (uint8_t m = 0; m < vtype.vlmul; m++) {
-        std::vector<char> vec(architecture_.vlen / 8, '\0');
-        for (uint8_t x = 0; x < architecture_.vlen / vtype.sew; x++) {
-          uint64_t i = ((architecture_.vlen / vtype.sew) * m) + x;
-          std::memcpy(&vec[vtype.sew * x], &i, vtype.sew);
+    uint16_t emul = vtype.vlmul;
+    switch (metadata_.opcode) {
+      case MATCH_VSETVLI: {
+        uint64_t reg = sourceValues_[0].get<uint64_t>();
+        uint32_t uimm = vectorImmediates[0];
+        uint16_t ovlmul = GET_BIT_SS(uimm, 0, 2);
+        uint16_t osew = GET_BIT_SS(uimm, 3, 5);
+        uint16_t ovta = GET_BIT(uimm, 6);
+        uint16_t ovma = GET_BIT(uimm, 7);
+        float vlmul = 0;
+        uint32_t sew = std::pow(2, osew + 3);
+        if (osew > 0b011) {
+          std::cerr << "Unsupported sew value encoded in vsetvli: "
+                    << std::bitset<3>(osew) << std::endl;
+          std::exit(1);
         }
-        results_[m] = RegisterValue(vec.data(), vec.size());
-      }
-    break;
-    case MATCH_VADD_VX:
-      uint64_t rs1 = sourceValues_[vtype.vlmul].get<uint64_t>();
-      for (uint8_t m = 0; m < vtype.vlmul; m++) {
-        const char *src = sourceValues_[m].getAsVector<char>();
-        std::vector<char> vec(architecture_.vlen / 8, '\0');
-        for (uint8_t x = 0; x < architecture_.vlen / vtype.sew; x++) {
-          uint64_t velem = 0;
-          std::memcpy(&velem, (const void*)src[x * vtype.sew], vtype.sew);
-          velem += rs1;
-          std::memcpy(&vec[vtype.sew * x], &velem, vtype.sew);
+        switch (ovlmul) {
+          case 0b000:
+          case 0b001:
+          case 0b010:
+          case 0b011:
+            vlmul = std::pow(2, ovlmul);
+            break;
+          case 0b101:
+            vlmul = 0.125f;
+          case 0b110:
+            vlmul = 0.25;
+          case 0b111:
+            vlmul = 0.5f;
+          default:
+            std::cerr << "Unsupported vlmul value encoded in vsetvli: "
+                      << std::bitset<3>(ovlmul) << std::endl;
+            std::exit(1);
         }
-        results_[m] = RegisterValue(vec.data(), vec.size());
-      }
-    break;
-    case MATCH_VADD_VV:
-      for (uint8_t m = 0; m < vtype.vlmul; m++) {
-        const char *src1 = sourceValues_[m].getAsVector<char>();
-        const char *src2 = sourceValues_[m + vtype.vlmul].getAsVector<char>();
-        std::vector<char> vec(architecture_.vlen / 8, '\0');
-        for (uint8_t x = 0; x < architecture_.vlen / vtype.sew; x++) {
-          uint64_t v_el1 = 0;
-          uint64_t v_el2 = 0;
-          std::memcpy(&v_el1, (const void*)src1[x * vtype.sew], vtype.sew);
-          std::memcpy(&v_el2, (const void*)src2[x * vtype.sew], vtype.sew);
-          v_el1 += v_el2;
-          std::memcpy(&vec[vtype.sew * x], &v_el1, vtype.sew);
+        float vlmax = vlmul * (architecture_.vlen / sew);
+        uint32_t _vlmax = vlmax;
+
+        uint64_t vl =
+            getSysRegFunc_(
+                {RegisterType::SYSTEM,
+                 static_cast<uint16_t>(
+                     architecture_.getSystemRegisterTag(RISCV_V_SYSREG_VL))})
+                .get<uint64_t>();
+
+        if (metadata_.operands[0].reg == 0 && metadata_.operands[1].reg == 0) {
+          vl = vl;
+        } else if (metadata_.operands[0].reg != 0 &&
+                   metadata_.operands[1].reg == 0) {
+          vl = vlmax;
+        } else if (metadata_.operands[1].reg != 0) {
+          if (reg > vlmax && reg < (2 * vlmax)) {
+            vl = std::ceil(vlmax / 2);
+          } else if (reg > (2 * vlmax)) {
+            vl = vlmax;
+          } else {
+            vl = reg;
+          }
         }
-        results_[m] = RegisterValue(vec.data(), vec.size());
-      }
-    break;
-    case MATCH_VSLL_VI:
-      uint64_t uimm = sourceValues_[vtype.vlmul].get<uint64_t>();
-      for (uint8_t m = 0; m < vtype.vlmul; m++) {
-        const char *src = sourceValues_[m].getAsVector<char>();
-        std::vector<char> vec(architecture_.vlen / 8, '\0');
-        for (uint8_t x = 0; x < architecture_.vlen / vtype.sew; x++) {
-          uint64_t velem = 0;
-          std::memcpy(&velem, (const void*)src[x * vtype.sew], vtype.sew);
-          velem <<= uimm;
-          std::memcpy(&vec[vtype.sew * x], &velem, vtype.sew);
+        uint64_t vtype = uimm;
+        if (destinationRegisterCount_ == 2) {
+          results_[0] = RegisterValue(vl, 8);
+          results_[1] = RegisterValue(vtype, 8);
+        } else {
+          results_[0] = RegisterValue(vl, 8);
+          results_[1] = RegisterValue(vl, 8);
+          results_[2] = RegisterValue(vtype, 8);
         }
-        results_[m] = RegisterValue(vec.data(), vec.size());
-      }
-    break;
-    case MATCH_VMACC_VV:
-      for (uint8_t m = 0; m < vtype.vlmul; m++) {
-        const char* src0 = sourceValues_[m].getAsVector<char>();
-        const char *src1 = sourceValues_[m + (vtype.vlmul)].getAsVector<char>();
-        const char *src2 = sourceValues_[m + (vtype.vlmul * 2)].getAsVector<char>();
-        std::vector<char> vec(architecture_.vlen / 8, '\0');
-        for (uint8_t x = 0; x < architecture_.vlen / vtype.sew; x++) {
-          uint64_t s1 = 0; uint64_t s2 = 0; uint64_t s3 = 0;
-          std::memcpy(&s1, (const void*)src0[x * vtype.sew], vtype.sew);
-          std::memcpy(&s2, (const void*)src1[x * vtype.sew], vtype.sew);
-          std::memcpy(&s2, (const void*)src2[x * vtype.sew], vtype.sew);
-          s1 += (s2 * s3);
-          std::memcpy(&vec[vtype.sew * x], &s1, vtype.sew);
+
+      } break;
+      case MATCH_VID_V: {
+        for (uint8_t m = 0; m < emul; m++) {
+          std::vector<char> vec(architecture_.vlen / 8, '\0');
+          for (uint8_t x = 0; x < architecture_.vlen / vtype.sew; x++) {
+            uint64_t i = ((architecture_.vlen / vtype.sew) * m) + x;
+            std::memcpy(&vec[(vtype.sew / 8) * x], &i, vtype.sew / 8);
+          }
+          results_[m] = RegisterValue(vec.data(), vec.size());
         }
-        results_[m] = RegisterValue(vec.data(), vec.size());
+      } break;
+      case MATCH_VADD_VX: {
+        EEW_TEMPL_SWITCH(vtype.sew, do_vadd_vx, architecture_.vlen, vtype.vlmul,
+                         sourceValues_, results_);
+      } break;
+      case MATCH_VADD_VV: {
+        EEW_TEMPL_SWITCH(vtype.sew, do_vadd_vv, architecture_.vlen, vtype.vlmul,
+                         sourceValues_, results_);
+      } break;
+      case MATCH_VSLL_VI: {
+        uint16_t vlen = architecture_.vlen;
+        EEW_TEMPL_SWITCH(vtype.sew, do_vssl_vi, vlen, vtype.vlmul,
+                         vectorImmediates[0], sourceValues_, results_);
+
+      } break;
+      case MATCH_VMACC_VV: {
+        EEW_TEMPL_SWITCH(vtype.sew, do_vmacc_vv, architecture_.vlen,
+                         vtype.vlmul, sourceValues_, results_);
+      } break;
+      default: {
+        return executionNYI();
       }
-    break;
-    default:
-      return executionNYI();
     }
-    return executionNYI();
+    executed_ = true;
+    return;
   }
 
   executed_ = true;

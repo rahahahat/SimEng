@@ -1,7 +1,8 @@
+#include <bitset>
+
 #include "../InstructionMetadata.hh"
 #include "simeng/arch/riscv/rvv/RVVDecode.hh"
 #include "simeng/arch/riscv/rvv/RVVEncoding.hh"
-
 namespace simeng {
 namespace arch {
 namespace riscv {
@@ -88,7 +89,7 @@ rvv_insn_desc rvv_vsetxvlx_predecode(const uint32_t insn) {
               .eew = 0,
               .implicit_src_cnt = 2,
               .implicit_dest_cnt = 3,
-              .opr_cnt = 5,
+              .opr_cnt = 3,
               .insn_len = 4,
               .mnemonic = "vsetvli",
               .operand_str = fmt::format("{}, {}, {}", reg_disasm[rd],
@@ -98,11 +99,7 @@ rvv_insn_desc rvv_vsetxvlx_predecode(const uint32_t insn) {
                             riscv_sysreg::RISCV_V_SYSREG_VTYPE},
               .operands = {INIT_RVV_OPR(RISCV_OP_REG, reg, rd),
                            INIT_RVV_OPR(RISCV_OP_REG, reg, rs1),
-                           INIT_RVV_OPR(RISCV_OP_IMM, imm, zimm),
-                           INIT_RVV_OPR(RISCV_OP_SYSREG, reg,
-                                        riscv_sysreg::RISCV_V_SYSREG_VTYPE),
-                           INIT_RVV_OPR(RISCV_OP_SYSREG, reg,
-                                        riscv_sysreg::RISCV_V_SYSREG_VL)}};
+                           INIT_RVV_OPR(RISCV_OP_IMM, imm, zimm)}};
       break;
     }
   }

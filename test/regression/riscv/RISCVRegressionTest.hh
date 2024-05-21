@@ -115,6 +115,11 @@ class RISCVRegressionTest : public RegressionTest {
         {simeng::arch::riscv::RegisterType::VECTOR, tag});
   }
 
+  uint64_t getSysRegister(uint16_t tag) {
+    return getRegister<uint64_t>({simeng::arch::riscv::RegisterType::SYSTEM,
+                                  architecture_->getSystemRegisterTag(tag)});
+  };
+
   /** Create a port allocator for an out-of-order core model. */
   virtual std::unique_ptr<simeng::pipeline::PortAllocator> createPortAllocator(
       ryml::ConstNodeRef config =

@@ -27,7 +27,8 @@ Core::Core(memory::MemoryInterface& instructionMemory,
 
 void Core::tick() {
   ticks_++;
-  GetSysRegFunc sysRegfn = [this](simeng::Register reg) -> const simeng::RegisterValue& {
+  GetSysRegFunc sysRegfn =
+      [this](simeng::Register reg) -> const simeng::RegisterValue& {
     return this->registerFileSet_.get(reg);
   };
 
@@ -95,6 +96,7 @@ void Core::tick() {
       auto& _uop = macroOp_[index];
       _uop->setGetSysRegFunc(sysRegfn);
       _uop->setSequenceId(++seqId_);
+      _uop->decode();
       microOps_.push(std::move(macroOp_[index]));
     }
   }
@@ -184,11 +186,9 @@ void Core::execute(std::shared_ptr<Instruction>& uop) {
   uop->execute();
 
   if (uop->exceptionEncountered()) {
-    // std::cout << "Comes here 1" << std::endl;
     handleException(uop);
     return;
   }
-
   if (uop->isStoreData()) {
     auto data = uop->getData();
     for (size_t i = 0; i < previousAddresses_.size(); i++) {
@@ -201,8 +201,11 @@ void Core::execute(std::shared_ptr<Instruction>& uop) {
 
   // Writeback
   // uop->writeback(registerFileSet_);
+  // std::cout << "Writeback" << std::endl;
+
   auto results = uop->getResults();
   auto destinations = uop->getDestinationRegisters();
+  // std::cout << "Dest mum: " << destinations.size() << std::endl;
   if (uop->isStoreData()) {
     for (size_t i = 0; i < results.size(); i++) {
       auto reg = destinations[i];
@@ -211,6 +214,12 @@ void Core::execute(std::shared_ptr<Instruction>& uop) {
   } else {
     for (size_t i = 0; i < results.size(); i++) {
       auto reg = destinations[i];
+
+      // std::cout << "Dest: " << "type: " << (uint16_t)reg.type
+      //           << " tag: " << reg.tag << std::endl;
+      // for (int x = 0; x < 2; x++) {
+      //   std::cout << results[i].getAsVector<uint32_t>()[x] << std::endl;
+      // }
       registerFileSet_.set(reg, results[i]);
     }
   }

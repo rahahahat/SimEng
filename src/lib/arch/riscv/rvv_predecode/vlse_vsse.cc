@@ -37,43 +37,40 @@ rvv_insn_desc rvv_ldst_strided_predecode(const uint32_t insn) {
         .opcode = opcode,
         .encoding = insn,
         .eew = acw,
-        .implicit_src_cnt = 5,
+        .lmul_type = LMUL_CALC_TYPE::OVERRIDE,
+        .implicit_src_cnt = 4,
         .implicit_dest_cnt = 1,
-        .opr_cnt = 6,
+        .opr_cnt = 5,
         .insn_len = 4,
         .mnemonic = mnemonic,
         .operand_str = opstr,
-        .imp_srcs = {rs1, rs2, vm, nf, riscv_sysreg::RISCV_V_SYSREG_VTYPE},
+        .imp_srcs = {rs1, rs2, vm, nf},
         .imp_dests = {vd_or_vs3},
         .operands = {INIT_RVV_OPR(RISCV_OP_VREG, reg, vd_or_vs3),
                      INIT_RVV_OPR(RISCV_OP_REG, reg, rs1),
                      INIT_RVV_OPR(RISCV_OP_REG, reg, rs2),
                      INIT_RVV_OPR(RISCV_OP_IMM, imm, vm),
-                     INIT_RVV_OPR(RISCV_OP_IMM, imm, nf),
-                     INIT_RVV_OPR(RISCV_OP_SYSREG, reg,
-                                  riscv_sysreg::RISCV_V_SYSREG_VTYPE)}};
+                     INIT_RVV_OPR(RISCV_OP_IMM, imm, nf)}};
   } else {
     return rvv_insn_desc{
         .id = RVV_INSN_TYPE::RVV_ST_STRIDED,
         .opcode = opcode,
         .encoding = insn,
         .eew = acw,
-        .implicit_src_cnt = 6,
+        .lmul_type = LMUL_CALC_TYPE::OVERRIDE,
+        .implicit_src_cnt = 5,
         .implicit_dest_cnt = 0,
-        .opr_cnt = 6,
+        .opr_cnt = 5,
         .insn_len = 4,
         .mnemonic = mnemonic,
         .operand_str = opstr,
-        .imp_srcs = {vd_or_vs3, rs1, rs2, vm, nf,
-                     riscv_sysreg::RISCV_V_SYSREG_VTYPE},
+        .imp_srcs = {vd_or_vs3, rs1, rs2, vm, nf},
         .imp_dests = {},
         .operands = {INIT_RVV_OPR(RISCV_OP_VREG, reg, vd_or_vs3),
                      INIT_RVV_OPR(RISCV_OP_REG, reg, rs1),
                      INIT_RVV_OPR(RISCV_OP_REG, reg, rs2),
                      INIT_RVV_OPR(RISCV_OP_IMM, imm, vm),
-                     INIT_RVV_OPR(RISCV_OP_IMM, imm, nf),
-                     INIT_RVV_OPR(RISCV_OP_SYSREG, reg,
-                                  riscv_sysreg::RISCV_V_SYSREG_VTYPE)}};
+                     INIT_RVV_OPR(RISCV_OP_IMM, imm, nf)}};
   }
 }
 

@@ -36,36 +36,34 @@ rvv_insn_desc rvv_ldst_wholereg_predecode(const uint32_t insn) {
         .opcode = opcode,
         .encoding = insn,
         .eew = acw,
-        .implicit_src_cnt = 2,
+        .lmul_type = LMUL_CALC_TYPE::OVERRIDE,
+        .implicit_src_cnt = 1,
         .implicit_dest_cnt = 1,
-        .opr_cnt = 3,
+        .opr_cnt = 2,
         .insn_len = 4,
         .mnemonic = mnemonic,
         .operand_str = opstr,
-        .imp_srcs = {rs1, riscv_sysreg::RISCV_V_SYSREG_VTYPE},
+        .imp_srcs = {rs1},
         .imp_dests = {vd_or_vs3},
         .operands = {INIT_RVV_OPR(RISCV_OP_VREG, reg, vd_or_vs3),
-                     INIT_RVV_OPR(RISCV_OP_REG, reg, rs1),
-                     INIT_RVV_OPR(RISCV_OP_SYSREG, reg,
-                                  riscv_sysreg::RISCV_V_SYSREG_VTYPE)}};
+                     INIT_RVV_OPR(RISCV_OP_REG, reg, rs1)}};
   } else {
     return rvv_insn_desc{
         .id = RVV_INSN_TYPE::RVV_ST_WHOLEREG,
         .opcode = opcode,
         .encoding = insn,
         .eew = acw,
-        .implicit_src_cnt = 3,
+        .lmul_type = LMUL_CALC_TYPE::OVERRIDE,
+        .implicit_src_cnt = 2,
         .implicit_dest_cnt = 0,
-        .opr_cnt = 3,
+        .opr_cnt = 2,
         .insn_len = 4,
         .mnemonic = mnemonic,
         .operand_str = opstr,
-        .imp_srcs = {vd_or_vs3, rs1, riscv_sysreg::RISCV_V_SYSREG_VTYPE},
+        .imp_srcs = {vd_or_vs3, rs1},
         .imp_dests = {},
         .operands = {INIT_RVV_OPR(RISCV_OP_VREG, reg, vd_or_vs3),
-                     INIT_RVV_OPR(RISCV_OP_REG, reg, rs1),
-                     INIT_RVV_OPR(RISCV_OP_SYSREG, reg,
-                                  riscv_sysreg::RISCV_V_SYSREG_VTYPE)}};
+                     INIT_RVV_OPR(RISCV_OP_REG, reg, rs1)}};
   }
 }
 

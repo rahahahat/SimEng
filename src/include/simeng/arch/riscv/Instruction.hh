@@ -223,7 +223,7 @@ class Instruction : public simeng::Instruction {
   span<const memory::MemoryAccessTarget> generateAddressesForRVV();
 
   /** */
-  void executeRVVLoadStore();
+  void executeRVVLoadStore(vtype_reg& reg);
 
   /** Update the instruction's identifier with an additional field. */
   constexpr void setInstructionType(InsnType identifier) {
@@ -276,6 +276,8 @@ class Instruction : public simeng::Instruction {
   uint8_t vecImmCount = 0;
 
   uint16_t eew = 0;
+  bool decoded = false;
+  uint64_t saved_vtype = 0;
 
   /** An array of generated output results. Each entry corresponds to a
    * `destinationRegisters` entry. */
