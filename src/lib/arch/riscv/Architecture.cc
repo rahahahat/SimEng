@@ -253,7 +253,7 @@ uint8_t Architecture::predecode(const void* ptr, uint16_t bytesAvailable,
     if (!((!success) && (mjop == 0x7 | mjop == 0x27 | mjop == 0x57))) {
       newInsn.setExecutionInfo(getExecutionInfo(newInsn));
     }
-
+    newInsn.setExecutionInfo(getExecutionInfo(newInsn));
     // Cache the instruction
     iter = decodeCache_.insert({insnEncoding, newInsn}).first;
   }

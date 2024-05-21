@@ -7,7 +7,7 @@ CC=/home/rahat/mphil-project/local/installs/rv-gnu-tc-linux/bin/riscv64-unknown-
 ARCH=rv64g
 
 # COMPILE_OPTS=--sysroot=$(SYSROOT_DIR) --gcc-toolchain=$(GCC_TOOLCHAIN_DIR) -march=$(ARCH) -mabi=lp64d -O3 -g
-COMPILE_OPTS=-march=$(ARCH) -mabi=lp64d -O3 -g
+COMPILE_OPTS=-march=$(ARCH) -O3 -g
 all: s276 s2101 rvv_swap main cleanO
 
 util:
