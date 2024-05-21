@@ -19,9 +19,9 @@ namespace riscv {
 #define STRING(s) #s
 
 template <typename T>
-void execute_vi_ld(uint16_t vlen, uint16_t lmul,
-                   std::array<simeng::RegisterValue, 8>& results,
-                   std::vector<simeng::RegisterValue>& memoryData) {
+void execute_v_ld(uint16_t vlen, uint16_t lmul,
+                  std::array<simeng::RegisterValue, 8>& results,
+                  std::vector<simeng::RegisterValue>& memoryData) {
   uint16_t vlenb = vlen / 8;
   uint16_t vsewb = sizeof(T);
   for (int x = 0; x < lmul; x++) {
@@ -36,9 +36,9 @@ void execute_vi_ld(uint16_t vlen, uint16_t lmul,
 }
 
 template <typename T>
-void execute_vi_st(uint16_t vlen, uint16_t lmul,
-                   std::array<simeng::RegisterValue, 26>& sources,
-                   std::vector<simeng::RegisterValue>& memoryData) {
+void execute_v_st(uint16_t vlen, uint16_t lmul,
+                  std::array<simeng::RegisterValue, 26>& sources,
+                  std::vector<simeng::RegisterValue>& memoryData) {
   uint16_t vlenb = vlen / 8;
   uint16_t vsewb = sizeof(T);
 
@@ -139,7 +139,7 @@ void do_vmacc_vv(uint16_t vlen, uint16_t lmul,
       std::exit(1);                                          \
   }
 
-#define VI_LD_ST(swarg, func, vlen, lmul, arr, vec)                 \
+#define V_LD_ST(swarg, func, vlen, lmul, arr, vec)                  \
   switch (swarg) {                                                  \
     case 8:                                                         \
       func<uint8_t>(vlen, lmul, arr, vec);                          \
@@ -322,24 +322,19 @@ void Instruction::executionNYI() {
 void Instruction::executeRVVLoadStore(vtype_reg& vtype) {
   uint16_t vlen = architecture_.vlen;
   switch (metadata_.id) {
-    case RVV_INSN_TYPE::RVV_LD_USTRIDE: {
-      std::vector<char> result((vlen / 8), '\0');
-      for (uint16_t x = 0; x < vlen / eew; x++) {
-        uint16_t idx = x * (eew / 8);
-        std::memcpy(&result[idx], memoryData_[x].getAsVector<char>(),
-                    (eew / 8));
-      }
-      results_[0] = RegisterValue(result.data(), (vlen / 8));
-    } break;
+    case RVV_INSN_TYPE::RVV_LD_USTRIDE:
+    case RVV_INSN_TYPE::RVV_LD_STRIDED:
     case RVV_INSN_TYPE::RVV_LD_OINDEXED:
     case RVV_INSN_TYPE::RVV_LD_UINDEXED: {
-      VI_LD_ST(vtype.sew, execute_vi_ld, architecture_.vlen, vtype.vlmul,
-               results_, memoryData_);
+      V_LD_ST(vtype.sew, execute_v_ld, architecture_.vlen, vtype.vlmul,
+              results_, memoryData_);
     } break;
+    case RVV_INSN_TYPE::RVV_ST_USTRIDE:
+    case RVV_INSN_TYPE::RVV_ST_STRIDED:
     case RVV_INSN_TYPE::RVV_ST_OINDEXED:
     case RVV_INSN_TYPE::RVV_ST_UINDEXED: {
-      VI_LD_ST(vtype.sew, execute_vi_st, architecture_.vlen, vtype.vlmul,
-               sourceValues_, memoryData_);
+      V_LD_ST(vtype.sew, execute_v_st, architecture_.vlen, vtype.vlmul,
+              sourceValues_, memoryData_);
     } break;
     default:
       return executionNYI();
@@ -347,8 +342,16 @@ void Instruction::executeRVVLoadStore(vtype_reg& vtype) {
 }
 
 void Instruction::execute() {
-  std::cout << std::hex << instructionAddress_ << std::dec << ": "
-            << metadata_.mnemonic << " " << metadata_.operandStr << std::endl;
+  // std::cout << std::hex << instructionAddress_ << std::dec << ": "
+  //           << metadata_.mnemonic << " " << metadata_.operandStr <<
+  //           std::endl;
+
+  // std::cout << "Executing" << std::endl;
+  // std::cout << std::hex << instructionAddress_ << std::dec << ": "
+  //           << metadata_.mnemonic << " " << metadata_.operandStr <<
+  //           std::endl;
+  // std::cout << std::endl;
+
   assert(!executed_ && "Attempted to execute an instruction more than once");
   assert(canExecute() &&
          "Attempted to execute an instruction before all source operands were "
@@ -364,7 +367,6 @@ void Instruction::execute() {
                  architecture_.getSystemRegisterTag(RISCV_V_SYSREG_VTYPE))})
             .get<uint64_t>();
     vtype_reg vtype = decode_vtype(vtype_enc);
-    std::cout << "Comes here in rvv execute for some reason" << std::endl;
     if (isInstruction(InsnType::isRVVLoad) ||
         isInstruction(InsnType::isRVVStore)) {
       executed_ = true;
@@ -440,6 +442,16 @@ void Instruction::execute() {
           results_[2] = RegisterValue(vtype, 8);
         }
 
+      } break;
+      case MATCH_VMV1R_V:
+      case MATCH_VMV2R_V:
+      case MATCH_VMV4R_V:
+      case MATCH_VMV8R_V: {
+        uint16_t mul = vectorImmediates[0];
+        for (uint16_t x = 0; x < mul; x++) {
+          results_[x] = RegisterValue(sourceValues_[x].getAsVector<char>(),
+                                      sourceValues_[x].size());
+        }
       } break;
       case MATCH_VID_V: {
         for (uint8_t m = 0; m < emul; m++) {
@@ -1252,6 +1264,10 @@ void Instruction::execute() {
       break;
     }
     case Opcode::RISCV_CSRRS: {  // CSRRS rd,csr,rs1
+      std::cout << sourceImm_ << std::endl;
+      if (sourceImm_ == 3106) {
+        results_[0] = architecture_.vlen / 8;
+      }
       // dummy implementation to allow progression
       // TODO implement fully when Zicsr extension is supported
       results_[0] = RegisterValue(static_cast<uint64_t>(0), 8);

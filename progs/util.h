@@ -2,15 +2,23 @@
 #define _UTIL_
 
 #ifndef LEN
-#define LEN 2048
+#define LEN 1024
 #endif
 
-void init_2d(int **aa, int size);
-void init_2dd(int aa[LEN][LEN]);
-void init_1d(int *a, int size);
+#ifndef ITR
+#define ITR 100
+#endif
 
-int aggregate_2d(int**aa, int size);
-int aggregate_2dd(int a[LEN][LEN]);
-int aggregate_1d(int*a, int size);
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+void init_2d(int** aa, int size);
+void init_2dd(int aa[LEN][LEN]);
+void init_1d(int* a, int size);
+
+uint64_t aggregate_2d(int** aa, int size);
+uint64_t aggregate_2dd(int a[LEN][LEN]);
+uint64_t aggregate_1d(int* a, int size);
 
 #endif

@@ -45,7 +45,6 @@ InstructionMetadata::InstructionMetadata(struct rvv_insn_desc insn_desc,
       implicitSourceCount(insn_desc.implicit_src_cnt),
       implicitDestinationCount(insn_desc.implicit_src_cnt),
       operandCount(insn_desc.opr_cnt) {
-  std::cout << "Comes here for some reason in rvv metadata" << std::endl;
   insnLengthBytes_ = 4;
   std::memset(encoding, 0, 4);
   std::memcpy(encoding, enc, 4);
@@ -62,11 +61,6 @@ InstructionMetadata::InstructionMetadata(struct rvv_insn_desc insn_desc,
               sizeof(simeng::cs_riscv_op) * operandCount);
   isRVV = true;
   eew = insn_desc.eew;
-  std::cout << "Predecoding RVV" << std::endl;
-  std::cout << insn_desc.mnemonic << " " << insn_desc.operand_str << std::endl;
-  std::cout << "Opcode: " << std::hex << insn_desc.opcode << std::dec
-            << std::endl;
-  std::cout << std::endl;
 }
 
 InstructionMetadata::InstructionMetadata(const uint8_t* invalidEncoding,
@@ -315,9 +309,11 @@ void InstructionMetadata::alterPseudoInstructions(const cs_insn& insn) {
         return aliasNYI();
       } else if (strcmp(mnemonic, "rdtime") == 0) {
         return aliasNYI();
-      } else if (strcmp(mnemonic, "csrr") == 0) {
-        return aliasNYI();
-      } else if (strcmp(mnemonic, "csrs") == 0) {
+      }
+      // else if (strcmp(mnemonic, "csrr") == 0) {
+      //   return aliasNYI();
+      // }
+      else if (strcmp(mnemonic, "csrs") == 0) {
         return aliasNYI();
       } else if (strcmp(mnemonic, "frcsr") == 0) {
         return aliasNYI();

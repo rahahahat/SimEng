@@ -26,8 +26,8 @@ rvv_insn_desc rvv_ldst_oindexed_predecode(const uint32_t insn) {
                                      !nf ? std::string() : ("seg" + nf), acw);
 
   std::string opstr =
-      fmt::format("v{}, ({}), v{}{}", vd_or_vs3, reg_disasm[rs1],
-                  reg_disasm[vs2], !vm ? ", v0.t" : std::string());
+      fmt::format("v{}, ({}), v{}{}", vd_or_vs3, reg_disasm[rs1], vs2,
+                  !vm ? ", v0.t" : std::string());
 
   uint32_t opcode =
       mjop | (uint32_t)width << 12 | mop << 26 | (uint32_t)mew << 28;

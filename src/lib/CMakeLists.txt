@@ -57,6 +57,7 @@ set(SIMENG_SOURCES
     arch/riscv/rvv_predecode/vid_v.cc
     arch/riscv/rvv_predecode/vmacc_v.cc
     arch/riscv/rvv_predecode/vsll_v.cc
+    arch/riscv/rvv_predecode/vmvr_v.cc
     Backward.cc
 )
 

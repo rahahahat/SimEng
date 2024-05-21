@@ -28,7 +28,6 @@ Register csRegToRegister(unsigned int reg, const riscv::Architecture& arch) {
   if (reg == riscv_sysreg::RISCV_V_SYSREG_VTYPE ||
       reg == riscv_sysreg::RISCV_V_SYSREG_VL ||
       reg == riscv_sysreg::RISCV_V_SYSREG_VLENB) {
-    std::cout << "comes hereee" << std::endl;
     return {RegisterType::SYSTEM,
             static_cast<uint16_t>(arch.getSystemRegisterTag(reg))};
   }
@@ -110,6 +109,7 @@ void Instruction::decode_rvv() {
   };
 
   switch (metadata_.id) {
+    case RVV_INSN_TYPE::RVV_VMVR:
     case RVV_INSN_TYPE::RVV_VADDV:
     case RVV_INSN_TYPE::RVV_VSLLV:
     case RVV_INSN_TYPE::RVV_VIDV:
@@ -122,6 +122,9 @@ void Instruction::decode_rvv() {
       if (metadata_.operands[0].reg != 0) {
         destinationRegisterCount_ = 0;
         uint16_t mul = vtype.vlmul;
+        if (metadata_.id == RVV_INSN_TYPE::RVV_VMVR) {
+          mul = metadata_.operands[2].imm;
+        }
         // Catch zero register references and pre-complete those operands
         uint16_t start_reg = metadata_.operands[0].reg;
         for (uint8_t x = 0; x < mul; x++) {
@@ -139,10 +142,11 @@ void Instruction::decode_rvv() {
             if (op.reg == 0) {
               // Catch zero register references and pre-complete those operands
               sourceValues_[sourceRegisterCount_] = RegisterValue(0, 8);
-              sourceOperandsPending_--;
+
+            } else {
+              sourceOperandsPending_++;
             }
             sourceRegisterCount_++;
-            sourceOperandsPending_++;
             break;
           }
           case 0x2: {  // imm
@@ -156,6 +160,8 @@ void Instruction::decode_rvv() {
                 metadata_.id == RVV_INSN_TYPE::RVV_LD_UINDEXED) {
               float emul = ((float)eew / (float)vtype.sew) * mul;
               mul = emul;
+            } else if (metadata_.id == RVV_INSN_TYPE::RVV_VMVR) {
+              mul = metadata_.operands[2].imm;
             }
             for (uint16_t y = 0; y < mul; y++) {
               uint64_t reg_ = op.reg + y;
@@ -163,11 +169,12 @@ void Instruction::decode_rvv() {
               if (op.reg == 0) {
                 // Catch zero register references and pre-complete those
                 // operands
-                sourceValues_[sourceRegisterCount_] = RegisterValue(0, vlen);
-                sourceOperandsPending_--;
+                sourceValues_[sourceRegisterCount_] =
+                    RegisterValue(0, vlen / 8);
+              } else {
+                sourceOperandsPending_++;
               }
               sourceRegisterCount_++;
-              sourceOperandsPending_++;
             }
             break;
           }
@@ -198,10 +205,10 @@ void Instruction::decode_rvv() {
             if (op.reg == 0) {
               // Catch zero register references and pre-complete those operands
               sourceValues_[sourceRegisterCount_] = RegisterValue(0, 8);
-              sourceOperandsPending_--;
+            } else {
+              sourceOperandsPending_++;
             }
             sourceRegisterCount_++;
-            sourceOperandsPending_++;
             break;
           }
           case 0x2: {  // imm
@@ -211,8 +218,8 @@ void Instruction::decode_rvv() {
           }
           case 0x4: {  // vreg
             uint16_t mul = vtype.vlmul;
-            if (metadata_.opcode == RVV_INSN_TYPE::RVV_ST_OINDEXED ||
-                metadata_.opcode == RVV_INSN_TYPE::RVV_ST_UINDEXED) {
+            if (metadata_.id == RVV_INSN_TYPE::RVV_ST_OINDEXED ||
+                metadata_.id == RVV_INSN_TYPE::RVV_ST_UINDEXED) {
               if (x == 0) {
                 mul = vtype.vlmul;
               } else {
@@ -226,11 +233,12 @@ void Instruction::decode_rvv() {
               if (reg_ == 0) {
                 // Catch zero register references and pre-complete those
                 // operands
-                sourceValues_[sourceRegisterCount_] = RegisterValue(0, vlen);
-                sourceOperandsPending_--;
+                sourceValues_[sourceRegisterCount_] =
+                    RegisterValue(0, vlen / 8);
+              } else {
+                sourceOperandsPending_++;
               }
               sourceRegisterCount_++;
-              sourceOperandsPending_++;
             }
             break;
           }
@@ -252,14 +260,10 @@ void Instruction::decode() {
   }
   if (metadata_.id > RVV_INSN_TYPE::RVV_INSNS &&
       metadata_.id < RVV_INSN_TYPE::RVV_INSN_END) {
-    std::cout << "Comes here decode rvv" << std::endl;
     uint64_t vtype_enc =
         getSysRegFunc_(
             csRegToRegister(riscv_sysreg::RISCV_V_SYSREG_VTYPE, architecture_))
             .get<uint64_t>();
-
-    if (decoded && saved_vtype == vtype_enc) return;
-    saved_vtype = vtype_enc;
 
     vtype_reg vtype = decode_vtype(vtype_enc);
     setInstructionType(InsnType::isRVV);
@@ -277,11 +281,10 @@ void Instruction::decode() {
       setInstructionType(InsnType::isRVVConf);
     }
     decode_rvv();
-    decoded = true;
     return;
   }
-  // if (decoded) return;
-  // decoded = true;
+  if (decoded) return;
+  decoded = true;
   // Identify branches
   switch (metadata_.opcode) {
     case Opcode::RISCV_BEQ:

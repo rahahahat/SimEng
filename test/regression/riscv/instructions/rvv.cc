@@ -227,33 +227,60 @@ TEST_P(RVV, vluxei) {
       EXPECT_EQ(vreg[y], 1000 + (x * 4) + 1 + y);
     }
   }
+  for (int x = 0; x < 8; x++) {
+    uint32_t mem = getMemoryValue<uint32_t>(process_->getHeapStart() +
+                                            (x * sizeof(uint32_t)));
+    EXPECT_EQ(mem, 1001 + x);
+  }
 }
 
-// TEST_P(RVV, vsoxei) {
-//   initialHeapData_.resize(32);
-//   uint32_t* heap = reinterpret_cast<uint32_t*>(initialHeapData_.data());
-//   for (uint32_t x = 0; x < 8; x++) {
-//     heap[x] = 1000 + x + 1;
-//   }
+TEST_P(RVV, vmv4r) {
+  RUN_RISCV(R"(
+    vsetvli a3, zero, e64, m4, ta, ma
+    vid.v v8
+    vmv4r.v v12, v8
+  )");
+  for (int x = 0; x < 4; x++) {
+    const uint64_t* vreg = getRVVRegister<uint64_t>(12 + x);
+    for (int y = 0; y < 2; y++) {
+      EXPECT_EQ(vreg[y], (2 * x) + y);
+    }
+  }
+}
 
-//   RUN_RISCV(R"(
-//     li a7, 214
-//     ecall
-//     add t2, t2, a0
-//     vsetvli a3, zero, e64, m4, ta, ma
-//     vid.v v8
-//     vsll.vi v12, v8, 2
-//     vadd.vx v16, v12, t2
-//     vsetvli zero, zero, e32, m2, ta, ma
-//     vluxei64.v v24, (zero), v16
-//   )");
-//   for (int x = 0; x < 2; x++) {
-//     const uint32_t* vreg = getRVVRegister<uint32_t>(24 + x);
-//     for (int y = 0; y < 4; y++) {
-//       EXPECT_EQ(vreg[y], 1000 + (x * 4) + 1 + y);
-//     }
-//   }
-// }
+TEST_P(RVV, vsoxei) {
+  initialHeapData_.resize(32);
+  uint32_t* heap = reinterpret_cast<uint32_t*>(initialHeapData_.data());
+  for (uint32_t x = 0; x < 8; x++) {
+    heap[x] = 1000 + x + 1;
+  }
+
+  RUN_RISCV(R"(
+    li a7, 214
+    ecall
+    add t2, t2, a0
+    vsetvli a3, zero, e64, m4, ta, ma
+    vid.v v8
+    vsll.vi v12, v8, 2
+    vadd.vx v16, v12, t2
+    vsetvli zero, zero, e32, m2, ta, ma
+    vluxei64.v v24, (zero), v16
+    li t2, 2
+    vadd.vx v26, v24, t2
+    vsoxei64.v v26, (zero), v16
+  )");
+  uint64_t heap_base = process_->getHeapStart();
+  for (int x = 0; x < 2; x++) {
+    const uint32_t* vreg = getRVVRegister<uint32_t>(26 + x);
+    for (int y = 0; y < 4; y++) {
+      EXPECT_EQ(vreg[y], 1001 + (4 * x) + 2 + y);
+    }
+  }
+  for (int x = 0; x < 8; x++) {
+    uint32_t mem = getMemoryValue<uint32_t>(heap_base + (x * sizeof(uint32_t)));
+    EXPECT_EQ(mem, 1003 + x);
+  }
+}
 
 // TEST_P(RVV, vluxei_decode) {
 //   initialHeapData_.resize(16);

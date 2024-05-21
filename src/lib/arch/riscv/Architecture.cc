@@ -233,29 +233,43 @@ uint8_t Architecture::predecode(const void* ptr, uint16_t bytesAvailable,
 
     auto metadata = success ? InstructionMetadata(rawInsn)
                             : InstructionMetadata(encoding, rawInsn.size);
+    free(rawInsnPointer);
 
     uint16_t mjop = GET_BIT_SS(encoding[0], 0, 6);
-    if (!success && (mjop == 0x7 | mjop == 0x27 | mjop == 0x57)) {
+    bool isRVV = (mjop == 0x7 | mjop == 0x27 | mjop == 0x57);
+    if (!success && isRVV) {
       uint32_t insn;
       memcpy(&insn, encoding, 4);
       rvv_insn_desc insn_desc = rvv_predecode(insn);
-      metadata = InstructionMetadata(insn_desc, encoding);
-    }
-    free(rawInsnPointer);
 
-    // Cache the metadata
-    metadataCache_.push_front(metadata);
+      if (insn_desc.opcode == MATCH_INVALID) {
+        metadata = InstructionMetadata(encoding, 4);
+      } else {
+        metadata = InstructionMetadata(insn_desc, encoding);
+      }
 
-    // Create an instruction using the metadata
-    Instruction newInsn(*this, metadataCache_.front());
+      output.resize(1);
+      auto& uop = output[0];
 
-    // Set execution information for this instruction
-    if (!((!success) && (mjop == 0x7 | mjop == 0x27 | mjop == 0x57))) {
+      // Retrieve the cached instruction and write to output
+      uop = std::make_shared<Instruction>(*this, metadata);
+      uop->setInstructionAddress(instructionAddress);
+      return metadata.getInsnLength();
+
+    } else {
+      // Cache the metadata
+      metadataCache_.push_front(metadata);
+
+      // Create an instruction using the metadata
+      Instruction newInsn(*this, metadataCache_.front());
+
+      // Set execution information for this instruction
+
       newInsn.setExecutionInfo(getExecutionInfo(newInsn));
+
+      // Cache the instruction
+      iter = decodeCache_.insert({insnEncoding, newInsn}).first;
     }
-    newInsn.setExecutionInfo(getExecutionInfo(newInsn));
-    // Cache the instruction
-    iter = decodeCache_.insert({insnEncoding, newInsn}).first;
   }
   // assert(((insnEncoding & 0b11) != 0b11
   //             ? iter->second.getMetadata().getInsnLength() == 2

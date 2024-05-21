@@ -33,7 +33,15 @@ Instruction::Instruction(const Architecture& architecture,
       exception_(metadata.getMetadataException()) {
   exceptionEncountered_ = metadata.getMetadataExceptionEncountered();
   eew = metadata_.eew;
-  decode();
+  if (metadata_.isRVV) {
+    // std::cout << "Creating RVV Insn" << std::endl;
+    // std::cout << std::hex << instructionAddress_ << std::dec << ": "
+    //           << metadata.mnemonic << " " << metadata.operandStr <<
+    //           std::endl;
+    // std::cout << "Opcode: " << std::hex << metadata_.opcode << std::dec
+    //           << std::endl;
+    // std::cout << std::endl;
+  }
 }
 
 Instruction::Instruction(const Architecture& architecture,
@@ -77,7 +85,7 @@ void Instruction::supplyOperand(uint16_t i, const RegisterValue& value) {
 }
 
 bool Instruction::isOperandReady(int index) const {
-  return static_cast<bool>(sourceValues_[index]);
+  return static_cast<bool>(sourceValues_[index].size());
 }
 
 const span<RegisterValue> Instruction::getResults() const {

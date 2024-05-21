@@ -29,17 +29,17 @@ namespace riscv {
 
 template <typename T>
 std::vector<simeng::memory::MemoryAccessTarget> gen_vi_addrs(
-    uint64_t vlen, uint16_t emul, uint16_t sew, uint16_t start_idx,
-    std::array<simeng::RegisterValue, 26> srcs) {
+    uint64_t vlen, uint16_t emul, uint16_t sew, uint64_t base,
+    uint16_t start_idx, std::array<simeng::RegisterValue, 26> srcs) {
   std::vector<memory::MemoryAccessTarget> addrs;
   uint16_t vlenb = vlen / 8;
   uint16_t veewb = sizeof(T);
-  uint64_t base = srcs[0].get<uint64_t>();
+  uint16_t vsewb = sew / 8;
   for (uint16_t m = 0; m < emul; m++) {
     const T* offt = srcs[start_idx + m].getAsVector<T>();
     for (uint16_t x = 0; x < vlenb / veewb; x++) {
       uint64_t addr = base + offt[x];
-      addrs.push_back({addr, sew});
+      addrs.push_back({addr, vsewb});
     }
   }
   return addrs;
@@ -66,13 +66,16 @@ std::vector<simeng::memory::MemoryAccessTarget> gen_vi_addrs(
   }  // namespace riscv
 
 std::vector<simeng::memory::MemoryAccessTarget> gen_strided_addrs(
-    uint16_t eew, uint64_t base, uint64_t stride, uint32_t vlen) {
+    uint32_t vlen, uint16_t lmul, uint16_t eew, uint64_t base,
+    uint64_t stride) {
+  uint16_t vlenb = vlen / 8;
+  uint16_t veewb = eew / 8;
   std::vector<simeng::memory::MemoryAccessTarget> addrs;
-  for (uint16_t x = 0; x < vlen / eew; x++) {
-    uint64_t addr = base + (x * (eew / 8)) + stride;
-    uint16_t size = eew / 8;
-    addrs.push_back({addr, size});
+  for (uint16_t x = 0; x < (vlenb / veewb) * lmul; x++) {
+    uint64_t addr = base + (x * stride);
+    addrs.push_back({addr, veewb});
   }
+
   return addrs;
 }
 
@@ -85,32 +88,40 @@ span<const memory::MemoryAccessTarget> Instruction::generateAddressesForRVV() {
           .get<uint64_t>());
   switch (metadata_.id) {
     case RVV_INSN_TYPE::RVV_LD_USTRIDE: {
-      uint8_t nf = metadata_.operands[3].imm;
       uint64_t base = sourceValues_[0].get<uint64_t>();
-      auto vaddrs = gen_strided_addrs(eew, base, 0, vlen);
+      auto vaddrs = gen_strided_addrs(vlen, vtype.vlmul, eew, base, 1);
       setMemoryAddresses(vaddrs);
-
     } break;
     case RVV_INSN_TYPE::RVV_LD_STRIDED: {
-      uint8_t nf = metadata_.operands[4].imm;
       uint64_t base = sourceValues_[0].get<uint64_t>();
       uint64_t stride = sourceValues_[1].get<uint64_t>();
-      auto vaddrs = gen_strided_addrs(eew, base, stride, vlen);
+      auto vaddrs = gen_strided_addrs(vlen, vtype.vlmul, eew, base, stride);
       setMemoryAddresses(vaddrs);
-
+    } break;
+    case RVV_INSN_TYPE::RVV_ST_USTRIDE: {
+      uint64_t base = sourceValues_[vtype.vlmul].get<uint64_t>();
+      auto vaddrs = gen_strided_addrs(vlen, vtype.vlmul, eew, base, 1);
+      setMemoryAddresses(vaddrs);
+    } break;
+    case RVV_INSN_TYPE::RVV_ST_STRIDED: {
+      uint64_t base = sourceValues_[vtype.vlmul].get<uint64_t>();
+      uint64_t stride = sourceValues_[vtype.vlmul + 1].get<uint64_t>();
+      auto vaddrs = gen_strided_addrs(vlen, vtype.vlmul, eew, base, stride);
+      setMemoryAddresses(vaddrs);
     } break;
     case RVV_INSN_TYPE::RVV_LD_OINDEXED:
     case RVV_INSN_TYPE::RVV_LD_UINDEXED: {
       uint64_t base = sourceValues_[0].get<uint64_t>();
       float emul = ((float)eew / (float)vtype.sew) * vtype.vlmul;
-      VIDX_ADDR_GEN(vlen, emul, vtype.sew, 1, sourceValues_);
+      VIDX_ADDR_GEN(vlen, emul, vtype.sew, base, 1, sourceValues_);
     } break;
     case RVV_INSN_TYPE::RVV_ST_OINDEXED:
     case RVV_INSN_TYPE::RVV_ST_UINDEXED: {
       uint64_t base = sourceValues_[vtype.vlmul].get<uint64_t>();
       float emul = ((float)eew / (float)vtype.sew) * vtype.vlmul;
-      VIDX_ADDR_GEN(vlen, emul, vtype.sew, vtype.vlmul + 1, sourceValues_);
-    }
+      VIDX_ADDR_GEN(vlen, emul, vtype.sew, base, vtype.vlmul + 1,
+                    sourceValues_);
+    } break;
     default: {
       std::cerr << "Default statement in generating addresses for VMemInsns"
                 << std::endl;
@@ -129,7 +140,6 @@ span<const memory::MemoryAccessTarget> Instruction::generateAddresses() {
   if (isInstruction(InsnType::isRVV)) {
     if (isInstruction(InsnType::isRVVLoad) ||
         isInstruction(InsnType::isRVVStore)) {
-      std::cout << "Comes here for some reason" << std::endl;
       return generateAddressesForRVV();
     }
     std::cerr << "Unsupported RVV Memory Insns type for generation of addresses"

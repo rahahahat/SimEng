@@ -103,9 +103,9 @@
 #define DCSR_CAUSE_HALT 5
 #define DCSR_CAUSE_GROUP 6
 
-#define MCONTROL_TYPE(xlen) (0xfULL << ((xlen)-4))
-#define MCONTROL_DMODE(xlen) (1ULL << ((xlen)-5))
-#define MCONTROL_MASKMAX(xlen) (0x3fULL << ((xlen)-11))
+#define MCONTROL_TYPE(xlen) (0xfULL << ((xlen) - 4))
+#define MCONTROL_DMODE(xlen) (1ULL << ((xlen) - 5))
+#define MCONTROL_MASKMAX(xlen) (0x3fULL << ((xlen) - 11))
 
 #define MCONTROL_SELECT (1 << 19)
 #define MCONTROL_TIMING (1 << 18)
@@ -1255,6 +1255,7 @@
 #define MASK_VZEXT_VF4 0xfc0ff07f
 #define MATCH_VZEXT_VF8 0x48012057
 #define MASK_VZEXT_VF8 0xfc0ff07f
+#define MATCH_INVALID 0x99999999
 
 #define CSR_FFLAGS 0x1
 #define CSR_FRM 0x2
