@@ -347,7 +347,7 @@ void Instruction::executeRVVLoadStore(vtype_reg& vtype) {
 }
 
 void Instruction::execute() {
-  std::cout << "0x" << std::hex << instructionAddress_ << std::dec << ": "
+  std::cout << std::hex << instructionAddress_ << std::dec << ": "
             << metadata_.mnemonic << " " << metadata_.operandStr << std::endl;
   assert(!executed_ && "Attempted to execute an instruction more than once");
   assert(canExecute() &&
