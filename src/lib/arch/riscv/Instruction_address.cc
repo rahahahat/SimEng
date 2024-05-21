@@ -109,7 +109,6 @@ span<const memory::MemoryAccessTarget> Instruction::generateAddresses() {
   if (isInstruction(InsnType::isRVV)) {
     if (isInstruction(InsnType::isRVVLoad) ||
         isInstruction(InsnType::isRVVStore)) {
-      std::cout << "Comes here for addr generation" << std::endl;
       return generateAddressesForRVV();
     }
     std::cerr << "Unsupported RVV Memory Insns type for generation of addresses"

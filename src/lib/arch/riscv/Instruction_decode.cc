@@ -181,8 +181,6 @@ void Instruction::decode() {
     return;
   }
 
-  std::cout << "Comes here" << std::endl;
-
   if (metadata_.id > RVV_INSN_TYPE::RVV_INSNS &&
       metadata_.id < RVV_INSN_TYPE::RVV_INSN_END) {
     setInstructionType(InsnType::isRVV);

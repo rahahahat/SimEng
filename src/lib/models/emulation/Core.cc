@@ -179,7 +179,6 @@ void Core::execute(std::shared_ptr<Instruction>& uop) {
   uop->execute();
 
   if (uop->exceptionEncountered()) {
-    std::cout << "Comes here 1" << std::endl;
     handleException(uop);
     return;
   }
