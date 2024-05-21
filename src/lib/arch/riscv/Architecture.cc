@@ -48,8 +48,10 @@ Architecture::Architecture(kernel::Linux& kernel, ryml::ConstNodeRef config)
 
   // Generate zero-indexed system register map
   for (uint16_t i = 0; i < config::SimInfo::getSysRegVec().size(); i++) {
-    systemRegisterMap_.insert({config::SimInfo::getSysRegVec()[i], i});
+    // systemRegisterMap_.insert({config::SimInfo::getSysRegVec()[i], i});
     // systemRegisterMap_[] = systemRegisterMap_.size();
+    systemRegisterMap_[config::SimInfo::getSysRegVec()[i]] =
+        systemRegisterMap_.size();
   }
 
   cycleSystemReg_ = {

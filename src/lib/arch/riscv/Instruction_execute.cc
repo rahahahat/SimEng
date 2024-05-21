@@ -355,13 +355,16 @@ void Instruction::execute() {
          "provided");
 
   // Implementation of rv64imafdc according to the v. 20191213 unprivileged spec
-  uint64_t vtype_enc =
-      getSysRegFunc_({RegisterType::SYSTEM,
-                      static_cast<uint16_t>(architecture_.getSystemRegisterTag(
-                          RISCV_V_SYSREG_VTYPE))})
-          .get<uint64_t>();
-  vtype_reg vtype = decode_vtype(vtype_enc);
+
   if (isInstruction(InsnType::isRVV)) {
+    uint64_t vtype_enc =
+        getSysRegFunc_(
+            {RegisterType::SYSTEM,
+             static_cast<uint16_t>(
+                 architecture_.getSystemRegisterTag(RISCV_V_SYSREG_VTYPE))})
+            .get<uint64_t>();
+    vtype_reg vtype = decode_vtype(vtype_enc);
+    std::cout << "Comes here in rvv execute for some reason" << std::endl;
     if (isInstruction(InsnType::isRVVLoad) ||
         isInstruction(InsnType::isRVVStore)) {
       executed_ = true;

@@ -28,6 +28,7 @@ Register csRegToRegister(unsigned int reg, const riscv::Architecture& arch) {
   if (reg == riscv_sysreg::RISCV_V_SYSREG_VTYPE ||
       reg == riscv_sysreg::RISCV_V_SYSREG_VL ||
       reg == riscv_sysreg::RISCV_V_SYSREG_VLENB) {
+    std::cout << "comes hereee" << std::endl;
     return {RegisterType::SYSTEM,
             static_cast<uint16_t>(arch.getSystemRegisterTag(reg))};
   }
@@ -251,6 +252,7 @@ void Instruction::decode() {
   }
   if (metadata_.id > RVV_INSN_TYPE::RVV_INSNS &&
       metadata_.id < RVV_INSN_TYPE::RVV_INSN_END) {
+    std::cout << "Comes here decode rvv" << std::endl;
     uint64_t vtype_enc =
         getSysRegFunc_(
             csRegToRegister(riscv_sysreg::RISCV_V_SYSREG_VTYPE, architecture_))
@@ -278,8 +280,8 @@ void Instruction::decode() {
     decoded = true;
     return;
   }
-  if (decoded) return;
-  decoded = true;
+  // if (decoded) return;
+  // decoded = true;
   // Identify branches
   switch (metadata_.opcode) {
     case Opcode::RISCV_BEQ:

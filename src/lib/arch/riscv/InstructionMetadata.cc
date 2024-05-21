@@ -45,6 +45,7 @@ InstructionMetadata::InstructionMetadata(struct rvv_insn_desc insn_desc,
       implicitSourceCount(insn_desc.implicit_src_cnt),
       implicitDestinationCount(insn_desc.implicit_src_cnt),
       operandCount(insn_desc.opr_cnt) {
+  std::cout << "Comes here for some reason in rvv metadata" << std::endl;
   insnLengthBytes_ = 4;
   std::memset(encoding, 0, 4);
   std::memcpy(encoding, enc, 4);

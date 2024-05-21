@@ -48,7 +48,7 @@ void Core::tick() {
     // Handle pending reads to a uop
     auto& uop = microOps_.front();
     const auto& completedReads = dataMemory_.getCompletedReads();
-    if (!completedReads.size()) return;
+    // if (!completedReads.size()) return;
     for (const auto& response : completedReads) {
       assert(pendingReads_ > 0);
       uop->supplyData(response.target.address, response.data);
@@ -94,9 +94,9 @@ void Core::tick() {
     // Decode
     for (size_t index = 0; index < macroOp_.size(); index++) {
       auto& _uop = macroOp_[index];
-      _uop->setGetSysRegFunc(sysRegfn);
-      _uop->setSequenceId(++seqId_);
-      _uop->decode();
+      // _uop->setGetSysRegFunc(sysRegfn);
+      // _uop->setSequenceId(++seqId_);
+      // _uop->decode();
       microOps_.push(std::move(macroOp_[index]));
     }
   }

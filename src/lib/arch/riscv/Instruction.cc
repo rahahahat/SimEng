@@ -33,7 +33,7 @@ Instruction::Instruction(const Architecture& architecture,
       exception_(metadata.getMetadataException()) {
   exceptionEncountered_ = metadata.getMetadataExceptionEncountered();
   eew = metadata_.eew;
-  // decode();
+  decode();
 }
 
 Instruction::Instruction(const Architecture& architecture,
