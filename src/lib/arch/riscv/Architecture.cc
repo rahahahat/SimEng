@@ -242,7 +242,7 @@ uint8_t Architecture::predecode(const void* ptr, uint16_t bytesAvailable,
       memcpy(&insn, encoding, 4);
       rvv_insn_desc insn_desc = rvv_predecode(insn);
 
-      if (insn_desc.opcode == MATCH_INVALID) {
+      if (insn_desc.id == RVV_INSN_TYPE::RVV_INSN_END) {
         metadata = InstructionMetadata(encoding, 4);
       } else {
         metadata = InstructionMetadata(insn_desc, encoding);

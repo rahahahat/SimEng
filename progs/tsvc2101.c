@@ -42,11 +42,11 @@ int main(void) {
   int* aa = (int*)malloc(sizeof(int) * LEN * LEN);
   int* bb = (int*)malloc(sizeof(int) * LEN * LEN);
   int* cc = (int*)malloc(sizeof(int) * LEN * LEN);
-  init_1d(aa, LEN);
-  init_1d(bb, LEN);
-  init_1d(cc, LEN);
+  init_1d(aa, LEN * LEN);
+  init_1d(bb, LEN * LEN);
+  init_1d(cc, LEN * LEN);
   rewrite_b(aa, bb, cc);
-  uint64_t sum = aggregate_1d(aa, LEN);
+  uint64_t sum = aggregate_1d(aa, LEN * LEN);
   printf("Done: %lu\n", sum);
 #else
   printf("Doing Original\n");

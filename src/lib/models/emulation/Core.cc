@@ -48,7 +48,7 @@ void Core::tick() {
     // Handle pending reads to a uop
     auto& uop = microOps_.front();
     const auto& completedReads = dataMemory_.getCompletedReads();
-    // if (!completedReads.size()) return;
+    if (!completedReads.size()) return;
     for (const auto& response : completedReads) {
       assert(pendingReads_ > 0);
       uop->supplyData(response.target.address, response.data);
@@ -128,7 +128,7 @@ void Core::tick() {
       // Memory reads are required; request them, set `pendingReads_`
       // accordingly, and end the cycle early
       for (auto const& target : addresses) {
-        dataMemory_.requestRead(target);
+        dataMemory_.requestRead(target, uop->getSequenceId());
         // Store addresses for use by next store data operation
         previousAddresses_.push_back(target);
       }
@@ -214,12 +214,6 @@ void Core::execute(std::shared_ptr<Instruction>& uop) {
   } else {
     for (size_t i = 0; i < results.size(); i++) {
       auto reg = destinations[i];
-
-      // std::cout << "Dest: " << "type: " << (uint16_t)reg.type
-      //           << " tag: " << reg.tag << std::endl;
-      // for (int x = 0; x < 2; x++) {
-      //   std::cout << results[i].getAsVector<uint32_t>()[x] << std::endl;
-      // }
       registerFileSet_.set(reg, results[i]);
     }
   }

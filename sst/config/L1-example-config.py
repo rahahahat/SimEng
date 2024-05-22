@@ -1,16 +1,16 @@
 import sst
 
-DEBUG_L1 = 0
+DEBUG_L1 = 10
 DEBUG_MEM = 0
-DEBUG_LEVEL = 0
+DEBUG_LEVEL = 10
 
 clw = "64"
 
 # Define the simulation components
 cpu = sst.Component("core", "sstsimeng.simengcore")
 cpu.addParams({
-    "simeng_config_path": "<PATH TO SIMENG MODEL CONFIG .YAML FILE>",
-    "executable_path": "<PATH TO EXECUTABLE BINARY>",
+    "simeng_config_path": "/home/rahat/mphil-project/SimEng/configs/DEMO_RISCV.yaml",
+    "executable_path": "/home/rahat/mphil-project/SimEng/progs/prog_tsvc276_o",
     "executable_args": "",
     "clock" : "1GHz",
     "max_addr_memory": 2*1024*1024*1024-1,
@@ -25,7 +25,7 @@ iface = cpu.setSubComponent("memory", "memHierarchy.standardInterface")
 
 l1cache = sst.Component("l1cache.mesi", "memHierarchy.Cache")
 l1cache.addParams({
-      "access_latency_cycles" : "2",
+      "access_latency_cycles" : "10",
       "cache_frequency" : "2Ghz",
       "replacement_policy" : "nmru",
       "coherence_protocol" : "MESI",
@@ -66,3 +66,6 @@ link_cpu_cache_link.connect( (iface, "port", "100ps"), (l1toC, "port", "100ps") 
 link_mem_bus_link = sst.Link("link_mem_bus_link")
 link_mem_bus_link.connect( (l1toM, "port", "50ps"), (Mtol1, "port", "50ps") )
 
+sst.setStatisticLoadLevel(7)
+sst.setStatisticOutput("sst.statOutputConsole")
+sst.enableAllStatisticsForComponentName("l1cache.mesi")

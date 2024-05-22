@@ -233,8 +233,8 @@ std::vector<std::string> SimEngCoreWrapper::splitArgs(std::string strArgs) {
            double quotes. To escape quotes use (\\\) instead of (\).\n
            )");
     std::cerr << "[SSTSimEng:SimEngCoreWrapper] Error occured at index "
-              << index << " of the argument string - substring: "
-              << "[ " << str << " ]" << std::endl;
+              << index << " of the argument string - substring: " << "[ " << str
+              << " ]" << std::endl;
     std::exit(EXIT_FAILURE);
   }
   args.push_back(str);
@@ -288,12 +288,12 @@ void SimEngCoreWrapper::fabricateSimEngCore() {
                         : std::make_unique<simeng::CoreInstance>(
                               executablePath_, executableArgs_);
   }
-  if (config::SimInfo::getSimMode() != config::SimulationMode::Outoforder) {
-    output_.verbose(CALL_INFO, 1, 0,
-                    "SimEng currently only supports Out-of-Order "
-                    "archetypes with SST.");
-    std::exit(EXIT_FAILURE);
-  }
+  // if (config::SimInfo::getSimMode() != config::SimulationMode::Outoforder) {
+  //   output_.verbose(CALL_INFO, 1, 0,
+  //                   "SimEng currently only supports Out-of-Order "
+  //                   "archetypes with SST.");
+  //   std::exit(EXIT_FAILURE);
+  // }
   // Set the SST data memory SimEng should use
   coreInstance_->setL1DataMemory(dataMemory_);
 

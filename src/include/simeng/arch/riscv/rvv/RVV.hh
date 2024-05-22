@@ -38,16 +38,20 @@ enum RVV_INSN_TYPE {
   RVV_VIDV,
   RVV_VADDV,
   RVV_VMACCV,
+  RVV_VMADDV,
   RVV_VSLLV,
   RVV_VMVR,
+  RVV_VMSLTU,
+  RVV_VMV,
+  RVV_VMERGE_VVM,
   RVV_INSN_END,
 };
 
 enum LMUL_CALC_TYPE { SYSREG, OVERRIDE, CALC };
 
 struct rvv_insn_desc {
-  unsigned int id;
-  unsigned int opcode = MATCH_INVALID;
+  unsigned int id = RVV_INSN_END;
+  unsigned int opcode;
   uint32_t encoding;
   uint16_t eew = 0;
   LMUL_CALC_TYPE lmul_type;

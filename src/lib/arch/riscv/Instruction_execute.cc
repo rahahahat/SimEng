@@ -27,7 +27,7 @@ void execute_v_ld(uint16_t vlen, uint16_t lmul,
   for (int x = 0; x < lmul; x++) {
     std::vector<T> vec(vlenb / vsewb, '\0');
     for (int y = 0; y < vlenb / vsewb; y++) {
-      uint16_t idx = (x * vsewb) + y;
+      uint16_t idx = (x * (vlenb / vsewb)) + y;
       T val = memoryData[idx].get<T>();
       vec[y] = val;
     }
@@ -41,12 +41,12 @@ void execute_v_st(uint16_t vlen, uint16_t lmul,
                   std::vector<simeng::RegisterValue>& memoryData) {
   uint16_t vlenb = vlen / 8;
   uint16_t vsewb = sizeof(T);
-
   for (int x = 0; x < lmul; x++) {
     const T* src = sources[x].getAsVector<T>();
     for (int y = 0; y < vlenb / vsewb; y++) {
       T elem = src[y];
-      memoryData.push_back(RegisterValue((const char*)&elem, sizeof(T)));
+      memoryData[(x * (vlenb / vsewb)) + y] =
+          RegisterValue((const char*)&elem, sizeof(T));
     }
   }
 }
@@ -108,12 +108,107 @@ void do_vmacc_vv(uint16_t vlen, uint16_t lmul,
   uint16_t vsewb = sizeof(T);
   uint32_t vlenb = vlen / 8;
   for (uint8_t m = 0; m < lmul; m++) {
-    const T* src1 = sources[m].getAsVector<T>();
-    const T* src2 = sources[lmul + m].getAsVector<T>();
-    const T* src3 = sources[(lmul * 2) + m].getAsVector<T>();
+    const T* vs1 = sources[m].getAsVector<T>();
+    const T* vs2 = sources[lmul + m].getAsVector<T>();
+    const T* vd = sources[(lmul * 2) + m].getAsVector<T>();
     std::vector<T> vec(vlenb / vsewb, '\0');
     for (uint8_t x = 0; x < vlenb / vsewb; x++) {
-      vec[x] = (src1[x] + (src2[x] * src3[x]));
+      vec[x] = (vs1[x] * vs2[x]) + vd[x];
+    }
+    results[m] = RegisterValue((const char*)vec.data(), sizeof(T) * vec.size());
+  }
+}
+
+template <typename T>
+void do_vmadd_vv(uint16_t vlen, uint16_t lmul,
+                 std::array<simeng::RegisterValue, 26>& sources,
+                 std::array<simeng::RegisterValue, 8>& results) {
+  uint16_t vsewb = sizeof(T);
+  uint32_t vlenb = vlen / 8;
+  for (uint8_t m = 0; m < lmul; m++) {
+    const T* vs1 = sources[m].getAsVector<T>();
+    const T* vd = sources[lmul + m].getAsVector<T>();
+    const T* vs2 = sources[(lmul * 2) + m].getAsVector<T>();
+    std::vector<T> vec(vlenb / vsewb, '\0');
+    for (uint8_t x = 0; x < vlenb / vsewb; x++) {
+      vec[x] = (vs1[x] * vd[x]) + vs2[x];
+    }
+    results[m] = RegisterValue((const char*)vec.data(), sizeof(T) * vec.size());
+  }
+}
+
+template <typename T>
+void do_vmsltu_vx(uint16_t vlen, uint16_t lmul,
+                  std::array<simeng::RegisterValue, 26>& sources,
+                  std::array<simeng::RegisterValue, 8>& results) {
+  uint16_t vsewb = sizeof(T);
+  uint32_t vlenb = vlen / 8;
+  uint16_t sew = vsewb * 8;
+  const T src2 = sources[lmul].get<T>();
+  std::vector<T> vec(vlenb / vsewb, 0);
+  uint32_t cnt = 0;
+  for (uint8_t m = 0; m < lmul; m++) {
+    const T* src1 = sources[m].getAsVector<T>();
+    for (uint16_t x = 0; x < vlenb / vsewb; x++) {
+      uint16_t bit_idx = cnt % sew;
+      uint16_t vec_idx = ((vlenb / vsewb) - 1) - (cnt / sew);
+      T bit = src1[x] < src2;
+      vec[vec_idx] |= (bit << bit_idx);
+      cnt++;
+    }
+  }
+  results[0] = RegisterValue((const char*)vec.data(), sizeof(T) * vec.size());
+}
+
+template <typename T>
+void do_vmerge_vvm(uint16_t vlen, uint16_t lmul,
+                   std::array<simeng::RegisterValue, 26>& sources,
+                   std::array<simeng::RegisterValue, 8>& results) {
+  uint16_t vsewb = sizeof(T);
+  uint32_t vlenb = vlen / 8;
+  uint16_t sew = vsewb * 8;
+  const T* mask = sources[lmul * 2].getAsVector<T>();
+  uint32_t cnt = 0;
+  for (uint8_t m = 0; m < lmul; m++) {
+    const T* vs2 = sources[m].getAsVector<T>();
+    const T* vs1 = sources[lmul + m].getAsVector<T>();
+    std::vector<T> vec(vlenb / vsewb, 0);
+    for (uint16_t x = 0; x < vlenb / vsewb; x++) {
+      uint16_t bit_idx = cnt % sew;
+      uint16_t vec_idx = ((vlenb / vsewb) - 1) - (cnt / sew);
+      T bit = mask[vec_idx] & ((T)0b01 << bit_idx);
+      vec[x] = bit ? vs1[x] : vs2[x];
+      cnt++;
+    }
+    results[m] = RegisterValue((const char*)vec.data(), sizeof(T) * vec.size());
+  }
+}
+
+template <typename T>
+void do_vmv_vx(uint16_t vlen, uint16_t lmul,
+               std::array<simeng::RegisterValue, 26>& sources,
+               std::array<simeng::RegisterValue, 8>& results) {
+  uint16_t vsewb = sizeof(T);
+  uint32_t vlenb = vlen / 8;
+  const T rs1 = sources[0].get<T>();
+  for (uint8_t m = 0; m < lmul; m++) {
+    std::vector<T> vec(vlenb / vsewb, 0);
+    for (uint16_t x = 0; x < vlenb / vsewb; x++) {
+      vec[x] = rs1;
+    }
+    results[m] = RegisterValue((const char*)vec.data(), sizeof(T) * vec.size());
+  }
+}
+
+template <typename T>
+void do_vmv_vi(uint16_t vlen, uint16_t lmul, int64_t val,
+               std::array<simeng::RegisterValue, 8>& results) {
+  uint16_t vsewb = sizeof(T);
+  uint32_t vlenb = vlen / 8;
+  for (uint8_t m = 0; m < lmul; m++) {
+    std::vector<T> vec(vlenb / vsewb, 0);
+    for (uint16_t x = 0; x < vlenb / vsewb; x++) {
+      vec[x] = static_cast<T>(val);
     }
     results[m] = RegisterValue((const char*)vec.data(), sizeof(T) * vec.size());
   }
@@ -132,6 +227,26 @@ void do_vmacc_vv(uint16_t vlen, uint16_t lmul,
       break;                                                 \
     case 64:                                                 \
       func<int64_t>(__VA_ARGS__);                            \
+      break;                                                 \
+    default:                                                 \
+      std::cerr << "Unsupported SEW/EEW in " << STRING(func) \
+                << " execute: " << swarg << std::endl;       \
+      std::exit(1);                                          \
+  }
+
+#define EEW_TEMPL_SWITCH_U(swarg, func, ...)                 \
+  switch (swarg) {                                           \
+    case 8:                                                  \
+      func<uint8_t>(__VA_ARGS__);                            \
+      break;                                                 \
+    case 16:                                                 \
+      func<uint16_t>(__VA_ARGS__);                           \
+      break;                                                 \
+    case 32:                                                 \
+      func<uint32_t>(__VA_ARGS__);                           \
+      break;                                                 \
+    case 64:                                                 \
+      func<uint64_t>(__VA_ARGS__);                           \
       break;                                                 \
     default:                                                 \
       std::cerr << "Unsupported SEW/EEW in " << STRING(func) \
@@ -323,17 +438,31 @@ void Instruction::executeRVVLoadStore(vtype_reg& vtype) {
   uint16_t vlen = architecture_.vlen;
   switch (metadata_.id) {
     case RVV_INSN_TYPE::RVV_LD_USTRIDE:
-    case RVV_INSN_TYPE::RVV_LD_STRIDED:
+    case RVV_INSN_TYPE::RVV_LD_STRIDED: {
+      V_LD_ST(eew, execute_v_ld, architecture_.vlen, vtype.vlmul, results_,
+              memoryData_);
+    } break;
     case RVV_INSN_TYPE::RVV_LD_OINDEXED:
     case RVV_INSN_TYPE::RVV_LD_UINDEXED: {
       V_LD_ST(vtype.sew, execute_v_ld, architecture_.vlen, vtype.vlmul,
               results_, memoryData_);
     } break;
+    case RVV_INSN_TYPE::RVV_LD_WHOLEREG: {
+      V_LD_ST(eew, execute_v_ld, architecture_.vlen, vectorImmediates[0],
+              results_, memoryData_);
+    } break;
     case RVV_INSN_TYPE::RVV_ST_USTRIDE:
-    case RVV_INSN_TYPE::RVV_ST_STRIDED:
+    case RVV_INSN_TYPE::RVV_ST_STRIDED: {
+      V_LD_ST(eew, execute_v_st, architecture_.vlen, vtype.vlmul, sourceValues_,
+              memoryData_);
+    } break;
     case RVV_INSN_TYPE::RVV_ST_OINDEXED:
     case RVV_INSN_TYPE::RVV_ST_UINDEXED: {
       V_LD_ST(vtype.sew, execute_v_st, architecture_.vlen, vtype.vlmul,
+              sourceValues_, memoryData_);
+    } break;
+    case RVV_INSN_TYPE::RVV_ST_WHOLEREG: {
+      V_LD_ST(eew, execute_v_st, architecture_.vlen, vectorImmediates[0],
               sourceValues_, memoryData_);
     } break;
     default:
@@ -480,6 +609,26 @@ void Instruction::execute() {
       case MATCH_VMACC_VV: {
         EEW_TEMPL_SWITCH(vtype.sew, do_vmacc_vv, architecture_.vlen,
                          vtype.vlmul, sourceValues_, results_);
+      } break;
+      case MATCH_VMADD_VV: {
+        EEW_TEMPL_SWITCH(vtype.sew, do_vmadd_vv, architecture_.vlen,
+                         vtype.vlmul, sourceValues_, results_);
+      } break;
+      case MATCH_VMSLTU_VX: {
+        EEW_TEMPL_SWITCH_U(vtype.sew, do_vmsltu_vx, architecture_.vlen,
+                           vtype.vlmul, sourceValues_, results_);
+      } break;
+      case MATCH_VMERGE_VVM: {
+        EEW_TEMPL_SWITCH_U(vtype.sew, do_vmerge_vvm, architecture_.vlen,
+                           vtype.vlmul, sourceValues_, results_);
+      }
+      case MATCH_VMV_V_X: {
+        EEW_TEMPL_SWITCH(vtype.sew, do_vmv_vx, architecture_.vlen, vtype.vlmul,
+                         sourceValues_, results_);
+      } break;
+      case MATCH_VMV_V_I: {
+        EEW_TEMPL_SWITCH(vtype.sew, do_vmv_vi, architecture_.vlen, vtype.vlmul,
+                         vectorImmediates[0], results_);
       } break;
       default: {
         return executionNYI();

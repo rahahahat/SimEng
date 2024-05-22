@@ -20,7 +20,7 @@ LLVM=/home/rahat/mphil-project/local/installs/riscv-llvm
 CC=${LLVM}/bin/clang
 
 # COMPILE_OPTS=--sysroot=$(SYSROOT_DIR) --gcc-toolchain=$(GCC_TOOLCHAIN_DIR) -march=$(ARCH) -mabi=lp64d -O3 -g
-COMPILE_OPTS=-Wall --target=riscv64-unknown-linux-gnu --sysroot=$(SYSROOT_DIR) --gcc-toolchain=$(GCC_TOOLCHAIN_DIR) -march=rv64gcv -mabi=lp64d -O3 -g -static -O3
+COMPILE_OPTS=-Wall --target=riscv64-unknown-linux-gnu --sysroot=$(SYSROOT_DIR) --gcc-toolchain=$(GCC_TOOLCHAIN_DIR) -march=rv64gc -mabi=lp64d -O3 -g -static -O3
 all: s276 s2101 rvv_swap main cleanO
 
 util:

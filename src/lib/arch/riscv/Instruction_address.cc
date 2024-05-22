@@ -89,7 +89,7 @@ span<const memory::MemoryAccessTarget> Instruction::generateAddressesForRVV() {
   switch (metadata_.id) {
     case RVV_INSN_TYPE::RVV_LD_USTRIDE: {
       uint64_t base = sourceValues_[0].get<uint64_t>();
-      auto vaddrs = gen_strided_addrs(vlen, vtype.vlmul, eew, base, 1);
+      auto vaddrs = gen_strided_addrs(vlen, vtype.vlmul, eew, base, eew / 8);
       setMemoryAddresses(vaddrs);
     } break;
     case RVV_INSN_TYPE::RVV_LD_STRIDED: {
@@ -98,9 +98,22 @@ span<const memory::MemoryAccessTarget> Instruction::generateAddressesForRVV() {
       auto vaddrs = gen_strided_addrs(vlen, vtype.vlmul, eew, base, stride);
       setMemoryAddresses(vaddrs);
     } break;
+    case RVV_INSN_TYPE::RVV_LD_WHOLEREG: {
+      uint64_t base = sourceValues_[0].get<uint64_t>();
+      uint16_t mul = vectorImmediates[0];
+      auto vaddrs = gen_strided_addrs(vlen, mul, eew, base, eew / 8);
+      setMemoryAddresses(vaddrs);
+    } break;
+    case RVV_INSN_TYPE::RVV_ST_WHOLEREG: {
+      uint16_t mul = vectorImmediates[0];
+      uint64_t base = sourceValues_[mul].get<uint64_t>();
+      uint64_t stride = 1;
+      auto vaddrs = gen_strided_addrs(vlen, mul, 8, base, stride);
+      setMemoryAddresses(vaddrs);
+    } break;
     case RVV_INSN_TYPE::RVV_ST_USTRIDE: {
       uint64_t base = sourceValues_[vtype.vlmul].get<uint64_t>();
-      auto vaddrs = gen_strided_addrs(vlen, vtype.vlmul, eew, base, 1);
+      auto vaddrs = gen_strided_addrs(vlen, vtype.vlmul, eew, base, eew / 8);
       setMemoryAddresses(vaddrs);
     } break;
     case RVV_INSN_TYPE::RVV_ST_STRIDED: {

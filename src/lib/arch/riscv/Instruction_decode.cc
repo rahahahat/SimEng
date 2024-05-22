@@ -109,30 +109,38 @@ void Instruction::decode_rvv() {
   };
 
   switch (metadata_.id) {
-    case RVV_INSN_TYPE::RVV_VMVR:
     case RVV_INSN_TYPE::RVV_VADDV:
+    case RVV_INSN_TYPE::RVV_VMADDV:
+    case RVV_INSN_TYPE::RVV_VMERGE_VVM:
+    case RVV_INSN_TYPE::RVV_VMV:
+    case RVV_INSN_TYPE::RVV_VMSLTU:
+    case RVV_INSN_TYPE::RVV_VMVR:
     case RVV_INSN_TYPE::RVV_VSLLV:
     case RVV_INSN_TYPE::RVV_VIDV:
+    case RVV_INSN_TYPE::RVV_VMACCV:
     case RVV_INSN_TYPE::RVV_LD_USTRIDE:     // vle
     case RVV_INSN_TYPE::RVV_LD_STRIDED:     // vlse
     case RVV_INSN_TYPE::RVV_LD_UINDEXED:    // vluxei
     case RVV_INSN_TYPE::RVV_LD_OINDEXED:    // vloxei
     case RVV_INSN_TYPE::RVV_LD_USTRIDEFF:   // vleff
     case RVV_INSN_TYPE::RVV_LD_WHOLEREG: {  // vlxre
-      if (metadata_.operands[0].reg != 0) {
-        destinationRegisterCount_ = 0;
-        uint16_t mul = vtype.vlmul;
-        if (metadata_.id == RVV_INSN_TYPE::RVV_VMVR) {
-          mul = metadata_.operands[2].imm;
-        }
-        // Catch zero register references and pre-complete those operands
-        uint16_t start_reg = metadata_.operands[0].reg;
-        for (uint8_t x = 0; x < mul; x++) {
-          destinationRegisters_[destinationRegisterCount_] =
-              decodeVecReg(start_reg + x);
-          destinationRegisterCount_++;
-        }
+
+      destinationRegisterCount_ = 0;
+      uint16_t mul = vtype.vlmul;
+      if (metadata_.id == RVV_INSN_TYPE::RVV_VMVR ||
+          metadata_.id == RVV_INSN_TYPE::RVV_LD_WHOLEREG) {
+        mul = metadata_.operands[2].imm;
+      } else if (metadata_.id == RVV_INSN_TYPE::RVV_VMERGE_VVM) {
+        mul = 1;
       }
+      // Catch zero register references and pre-complete those operands
+      uint16_t start_reg = metadata_.operands[0].reg;
+      for (uint8_t x = 0; x < mul; x++) {
+        destinationRegisters_[destinationRegisterCount_] =
+            decodeVecReg(start_reg + x);
+        destinationRegisterCount_++;
+      }
+
       for (uint8_t x = 1; x < metadata_.operandCount; x++) {
         simeng::cs_riscv_op op = metadata_.operands[x];
         switch (op.type) {
@@ -142,7 +150,6 @@ void Instruction::decode_rvv() {
             if (op.reg == 0) {
               // Catch zero register references and pre-complete those operands
               sourceValues_[sourceRegisterCount_] = RegisterValue(0, 8);
-
             } else {
               sourceOperandsPending_++;
             }
@@ -166,14 +173,7 @@ void Instruction::decode_rvv() {
             for (uint16_t y = 0; y < mul; y++) {
               uint64_t reg_ = op.reg + y;
               sourceRegisters_[sourceRegisterCount_] = decodeVecReg(reg_);
-              if (op.reg == 0) {
-                // Catch zero register references and pre-complete those
-                // operands
-                sourceValues_[sourceRegisterCount_] =
-                    RegisterValue(0, vlen / 8);
-              } else {
-                sourceOperandsPending_++;
-              }
+              sourceOperandsPending_++;
               sourceRegisterCount_++;
             }
             break;
@@ -226,18 +226,14 @@ void Instruction::decode_rvv() {
                 float emul = ((float)eew / (float)vtype.sew) * mul;
                 mul = emul;
               }
+            } else if (metadata_.id == RVV_INSN_TYPE::RVV_ST_WHOLEREG) {
+              mul = metadata_.operands[2].imm;
+              // std::cout << "Decode MUL: " << mul << std::endl;
             }
             for (int y = 0; y < mul; y++) {
               uint64_t reg_ = op.reg + y;
               sourceRegisters_[sourceRegisterCount_] = decodeVecReg(reg_);
-              if (reg_ == 0) {
-                // Catch zero register references and pre-complete those
-                // operands
-                sourceValues_[sourceRegisterCount_] =
-                    RegisterValue(0, vlen / 8);
-              } else {
-                sourceOperandsPending_++;
-              }
+              sourceOperandsPending_++;
               sourceRegisterCount_++;
             }
             break;

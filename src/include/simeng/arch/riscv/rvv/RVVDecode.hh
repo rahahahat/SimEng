@@ -27,10 +27,13 @@ rvv_insn_desc rvv_vsll_predecode(const uint32_t insn, uint32_t match);
 rvv_insn_desc rvv_vadd_predecode(const uint32_t insn, uint32_t func3);
 rvv_insn_desc rvv_vmacc_predecode(const uint32_t insn, uint32_t func3);
 rvv_insn_desc rvv_vmvr_predecode(const uint32_t insn);
-
+rvv_insn_desc rvv_vmsltu_predecode(const uint32_t insn);
+rvv_insn_desc rvv_vmerge_vvm_predecode(const uint32_t insn);
+rvv_insn_desc rvv_vmv_vx_predecode(const uint32_t insn);
 rvv_insn_desc predecode_mopc_lfp_sfp(const uint32_t insn);
 rvv_insn_desc predecode_mopc_opv(const uint32_t insn);
 rvv_insn_desc rvv_predecode(const uint32_t insn);
+rvv_insn_desc rvv_vmadd_vv_predecode(const uint32_t insn);
 
 }  // namespace riscv
 }  // namespace arch

@@ -29,7 +29,6 @@ rvv_insn_desc rvv_ldst_wholereg_predecode(const uint32_t insn) {
   std::string opstr = fmt::format("v{}, ({})", vd_or_vs3, reg_disasm[rs1]);
 
   uint32_t opcode = 0x0 | mjop | (uint32_t)width << 12 | lumop << 20 | vm << 25;
-
   if (mjop == 0x7) {
     return rvv_insn_desc{
         .id = RVV_INSN_TYPE::RVV_LD_WHOLEREG,
@@ -37,16 +36,17 @@ rvv_insn_desc rvv_ldst_wholereg_predecode(const uint32_t insn) {
         .encoding = insn,
         .eew = acw,
         .lmul_type = LMUL_CALC_TYPE::OVERRIDE,
-        .implicit_src_cnt = 1,
+        .implicit_src_cnt = 2,
         .implicit_dest_cnt = 1,
-        .opr_cnt = 2,
+        .opr_cnt = 3,
         .insn_len = 4,
         .mnemonic = mnemonic,
         .operand_str = opstr,
-        .imp_srcs = {rs1},
+        .imp_srcs = {rs1, nf + 1},
         .imp_dests = {vd_or_vs3},
         .operands = {INIT_RVV_OPR(RISCV_OP_VREG, reg, vd_or_vs3),
-                     INIT_RVV_OPR(RISCV_OP_REG, reg, rs1)}};
+                     INIT_RVV_OPR(RISCV_OP_REG, reg, rs1),
+                     INIT_RVV_OPR(RISCV_OP_IMM, imm, nf + 1)}};
   } else {
     return rvv_insn_desc{
         .id = RVV_INSN_TYPE::RVV_ST_WHOLEREG,
@@ -54,16 +54,17 @@ rvv_insn_desc rvv_ldst_wholereg_predecode(const uint32_t insn) {
         .encoding = insn,
         .eew = acw,
         .lmul_type = LMUL_CALC_TYPE::OVERRIDE,
-        .implicit_src_cnt = 2,
+        .implicit_src_cnt = 3,
         .implicit_dest_cnt = 0,
-        .opr_cnt = 2,
+        .opr_cnt = 3,
         .insn_len = 4,
         .mnemonic = mnemonic,
         .operand_str = opstr,
-        .imp_srcs = {vd_or_vs3, rs1},
+        .imp_srcs = {vd_or_vs3, rs1, nf + 1},
         .imp_dests = {},
         .operands = {INIT_RVV_OPR(RISCV_OP_VREG, reg, vd_or_vs3),
-                     INIT_RVV_OPR(RISCV_OP_REG, reg, rs1)}};
+                     INIT_RVV_OPR(RISCV_OP_REG, reg, rs1),
+                     INIT_RVV_OPR(RISCV_OP_IMM, imm, nf + 1)}};
   }
 }
 
