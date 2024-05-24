@@ -5,7 +5,9 @@
 
 #include "simeng/arch/riscv/Architecture.hh"
 #include "simeng/arch/riscv/rvv/RVV.hh"
-
+#define GET_BIT(src, pos) ((src & (0b01 << pos)) >> pos)
+#define GET_BIT_SS(src, s_pos, e_pos) \
+  ((src >> s_pos) & (0xFFFFFFFF >> (31 - (e_pos - s_pos))))
 namespace simeng {
 namespace arch {
 namespace riscv {
@@ -311,11 +313,18 @@ void InstructionMetadata::alterPseudoInstructions(const cs_insn& insn) {
         return aliasNYI();
       } else if (strcmp(mnemonic, "rdtime") == 0) {
         return aliasNYI();
-      }
-      // else if (strcmp(mnemonic, "csrr") == 0) {
-      //   return aliasNYI();
-      // }
-      else if (strcmp(mnemonic, "csrs") == 0) {
+      } else if (strcmp(mnemonic, "csrr") == 0) {
+        uint32_t enc = 0;
+        std::memcpy(&enc, encoding, 4);
+        uint16_t uimm = GET_BIT_SS(enc, 20, 31);
+        operands[1].type = riscv_op_type::RISCV_OP_IMM;
+        operands[1].imm = uimm;
+
+        operands[2].type = riscv_op_type::RISCV_OP_REG;
+        operands[2].reg = RISCV_REG_ZERO;
+        operandCount = 3;
+        // operands
+      } else if (strcmp(mnemonic, "csrs") == 0) {
         return aliasNYI();
       } else if (strcmp(mnemonic, "frcsr") == 0) {
         return aliasNYI();

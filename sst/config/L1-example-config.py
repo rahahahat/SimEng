@@ -10,7 +10,7 @@ clw = "64"
 cpu = sst.Component("core", "sstsimeng.simengcore")
 cpu.addParams({
     "simeng_config_path": "/home/rahat/mphil-project/SimEng/configs/DEMO_RISCV.yaml",
-    "executable_path": "/home/rahat/mphil-project/SimEng/progs/prog_tsvc276_o",
+    "executable_path": "/home/rahat/mphil-project/SimEng/progs/prog_tsvc2101_b",
     "executable_args": "",
     "clock" : "1GHz",
     "max_addr_memory": 2*1024*1024*1024-1,
@@ -25,7 +25,7 @@ iface = cpu.setSubComponent("memory", "memHierarchy.standardInterface")
 
 l1cache = sst.Component("l1cache.mesi", "memHierarchy.Cache")
 l1cache.addParams({
-      "access_latency_cycles" : "10",
+      "access_latency_cycles" : "5",
       "cache_frequency" : "2Ghz",
       "replacement_policy" : "nmru",
       "coherence_protocol" : "MESI",
@@ -68,4 +68,6 @@ link_mem_bus_link.connect( (l1toM, "port", "50ps"), (Mtol1, "port", "50ps") )
 
 sst.setStatisticLoadLevel(7)
 sst.setStatisticOutput("sst.statOutputConsole")
-sst.enableAllStatisticsForComponentName("l1cache.mesi")
+sst.enableStatisticsForComponentName("l1cache.mesi", ["GetS_recv", "GetX_recv", "Write_recv", "GetSX_recv", "PutM_recv", "PutX_recv","PutS_recv", "PutE_recv" ,"TotalEventsReceived","CacheHits", "CacheMisses", "eventSent_GetS", "eventSent_GetX", "eventSent_GetSX", "eventSent_Write", "eventSent_PutS", "eventSent_PutM", "eventSent_PutE", "eventSent_Put", "eventSent_Get"])
+# sst.enableStatisticsForComponentName("a64fx.l2cache", ["GetS_recv", "GetX_recv", "Write_recv", "GetSX_recv", "PutM_recv", "PutX_recv","PutS_recv", "PutE_recv" ,"TotalEventsReceived","CacheHits", "CacheMisses", "eventSent_GetS", "eventSent_GetX", "eventSent_GetSX", "eventSent_Write", "eventSent_PutS", "eventSent_PutM", "eventSent_PutE", "eventSent_Put", "eventSent_Get"])
+

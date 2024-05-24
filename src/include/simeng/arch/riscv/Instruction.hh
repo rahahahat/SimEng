@@ -212,6 +212,12 @@ class Instruction : public simeng::Instruction {
    * processing this instruction. */
   InstructionException getException() const;
 
+  /** Tests whether this instruction has the given identifier set. */
+  bool isInstruction(InsnType identifier) const {
+    return (instructionIdentifier_ &
+            static_cast<std::underlying_type<InsnType>::type>(identifier));
+  }
+
   /***/
   // void writeback(simeng::RegisterFileSet& rfs) override;
 
@@ -229,12 +235,6 @@ class Instruction : public simeng::Instruction {
   constexpr void setInstructionType(InsnType identifier) {
     instructionIdentifier_ |=
         static_cast<std::underlying_type_t<InsnType>>(identifier);
-  }
-
-  /** Tests whether this instruction has the given identifier set. */
-  constexpr bool isInstruction(InsnType identifier) const {
-    return (instructionIdentifier_ &
-            static_cast<std::underlying_type_t<InsnType>>(identifier));
   }
 
   /** For instructions with a valid rm field, extract the rm value and change

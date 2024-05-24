@@ -2,6 +2,8 @@
 
 #include <cstring>
 
+#include "simeng/arch/riscv/Instruction.hh"
+
 namespace simeng {
 namespace models {
 namespace emulation {
@@ -177,9 +179,15 @@ uint64_t Core::getInstructionsRetiredCount() const {
 }
 
 std::map<std::string, std::string> Core::getStats() const {
-  return {{"cycles", std::to_string(ticks_)},
-          {"retired", std::to_string(instructionsExecuted_)},
-          {"branch.executed", std::to_string(branchesExecuted_)}};
+  return {
+      {"cycles", std::to_string(ticks_)},
+      {"retired", std::to_string(instructionsExecuted_)},
+      {"branch.executed", std::to_string(branchesExecuted_)},
+      {"base.loads", std::to_string(base_loads)},
+      {"base.stores", std::to_string(base_stores)},
+      {"vector.loads", std::to_string(v_loads)},
+      {"vector.stores", std::to_string(v_stores)},
+  };
 };
 
 void Core::execute(std::shared_ptr<Instruction>& uop) {
@@ -220,6 +228,20 @@ void Core::execute(std::shared_ptr<Instruction>& uop) {
 
   if (uop->isLastMicroOp()) instructionsExecuted_++;
 
+  auto ruop = dynamic_cast<simeng::arch::riscv::Instruction*>(uop.get());
+  if (uop->isLoad()) {
+    if (ruop->isInstruction(simeng::arch::riscv::InsnType::isRVVLoad)) {
+      v_loads++;
+    } else {
+      base_loads++;
+    }
+  } else if (uop->isStoreAddress() || uop->isStoreData()) {
+    if (ruop->isInstruction(simeng::arch::riscv::InsnType::isRVVStore)) {
+      v_stores++;
+    } else {
+      base_stores++;
+    }
+  }
   // Fetch memory for next cycle
   instructionMemory_.requestRead({pc_, FETCH_SIZE});
   microOps_.pop();

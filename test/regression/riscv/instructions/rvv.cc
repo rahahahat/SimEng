@@ -305,7 +305,7 @@ TEST_P(RVV, vl_wholereg) {
   }
 }
 
-TEST_P(RVV, vl_vs1r) {
+TEST_P(RVV, vl_vs2r) {
   initialHeapData_.resize(64);
   uint64_t* heap = reinterpret_cast<uint64_t*>(initialHeapData_.data());
   for (uint32_t x = 0; x < 4; x++) {
@@ -324,34 +324,18 @@ TEST_P(RVV, vl_vs1r) {
   auto hstart = process_->getHeapStart() + 32;
   std::cout << hstart << std::endl;
   for (int x = 0; x < 32; x++) {
-    std::cout << x << std::endl;
     uint8_t val = getMemoryValue<uint8_t>(hstart + 1);
     EXPECT_EQ(val, 0xAF);
   }
 }
 
-// TEST_P(RVV, vluxei_decode) {
-//   initialHeapData_.resize(16);
-//   uint64_t* heap =
-//   reinterpret_cast<uint64_t*>(initialHeapData_.data()); heap[0] =
-//   0xDEADBEEFBEEFDEAD; heap[1] = 0xDEADBEEFDEADBEEF; RUN_RISCV(R"(
-//     vluxei8.v      v26, (zero), v16
-//     vluxei16.v      v26, (zero), v16
-//     vluxei32.v      v26, (zero), v16
-//     vluxei64.v      v26, (zero), v16
-//   )");
-// }
-// TEST_P(RVV, vsoxei_decode) {
-//   initialHeapData_.resize(16);
-//   uint64_t* heap =
-//   reinterpret_cast<uint64_t*>(initialHeapData_.data()); heap[0] =
-//   0xDEADBEEFBEEFDEAD; heap[1] = 0xDEADBEEFDEADBEEF; RUN_RISCV(R"(
-//     vsoxei8.v      v26, (zero), v16
-//     vsoxei16.v      v26, (zero), v16
-//     vsoxei32.v      v26, (zero), v16
-//     vsoxei64.v      v26, (zero), v16
-//   )");
-// }
+TEST_P(RVV, csrr_vlenb) {
+  RUN_RISCV(R"(
+      csrr t1, vlenb
+    )");
+
+  EXPECT_EQ(16, getGeneralRegister<uint64_t>(6));
+}
 
 INSTANTIATE_TEST_SUITE_P(RISCV, RVV,
                          ::testing::Values(std::make_tuple(EMULATION, "{}")),

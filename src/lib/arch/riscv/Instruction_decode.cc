@@ -108,139 +108,125 @@ void Instruction::decode_rvv() {
     return;
   };
 
+  uint32_t src_mul = vtype.vlmul;
+  uint32_t dest_mul = vtype.vlmul;
+  uint16_t opr_start = 1;
+  bool skip_dest = false;
+
   switch (metadata_.id) {
+    case RVV_INSN_TYPE::RVV_VMVR:
+    case RVV_INSN_TYPE::RVV_LD_WHOLEREG: {
+      dest_mul = metadata_.operands[2].imm;
+      src_mul = dest_mul;
+    } break;
+    case RVV_INSN_TYPE::RVV_VMSLTU: {
+      dest_mul = 1;
+      src_mul = vtype.vlmul;
+    } break;
+    case RVV_INSN_TYPE::RVV_VMERGE_VVM:
     case RVV_INSN_TYPE::RVV_VADDV:
     case RVV_INSN_TYPE::RVV_VMADDV:
-    case RVV_INSN_TYPE::RVV_VMERGE_VVM:
     case RVV_INSN_TYPE::RVV_VMV:
-    case RVV_INSN_TYPE::RVV_VMSLTU:
-    case RVV_INSN_TYPE::RVV_VMVR:
     case RVV_INSN_TYPE::RVV_VSLLV:
     case RVV_INSN_TYPE::RVV_VIDV:
     case RVV_INSN_TYPE::RVV_VMACCV:
-    case RVV_INSN_TYPE::RVV_LD_USTRIDE:     // vle
-    case RVV_INSN_TYPE::RVV_LD_STRIDED:     // vlse
-    case RVV_INSN_TYPE::RVV_LD_UINDEXED:    // vluxei
-    case RVV_INSN_TYPE::RVV_LD_OINDEXED:    // vloxei
-    case RVV_INSN_TYPE::RVV_LD_USTRIDEFF:   // vleff
-    case RVV_INSN_TYPE::RVV_LD_WHOLEREG: {  // vlxre
-
-      destinationRegisterCount_ = 0;
-      uint16_t mul = vtype.vlmul;
-      if (metadata_.id == RVV_INSN_TYPE::RVV_VMVR ||
-          metadata_.id == RVV_INSN_TYPE::RVV_LD_WHOLEREG) {
-        mul = metadata_.operands[2].imm;
-      } else if (metadata_.id == RVV_INSN_TYPE::RVV_VMERGE_VVM) {
-        mul = 1;
-      }
-      // Catch zero register references and pre-complete those operands
-      uint16_t start_reg = metadata_.operands[0].reg;
-      for (uint8_t x = 0; x < mul; x++) {
-        destinationRegisters_[destinationRegisterCount_] =
-            decodeVecReg(start_reg + x);
-        destinationRegisterCount_++;
-      }
-
-      for (uint8_t x = 1; x < metadata_.operandCount; x++) {
-        simeng::cs_riscv_op op = metadata_.operands[x];
-        switch (op.type) {
-          case 0x1: {  // reg
-            sourceRegisters_[sourceRegisterCount_] =
-                csRegToRegister(op.reg + 1, architecture_);
-            if (op.reg == 0) {
-              // Catch zero register references and pre-complete those operands
-              sourceValues_[sourceRegisterCount_] = RegisterValue(0, 8);
-            } else {
-              sourceOperandsPending_++;
-            }
-            sourceRegisterCount_++;
-            break;
-          }
-          case 0x2: {  // imm
-            vectorImmediates[vecImmCount] = op.imm;
-            vecImmCount++;
-            break;
-          }
-          case 0x4: {  // vreg
-            uint16_t mul = vtype.vlmul;
-            if (metadata_.id == RVV_INSN_TYPE::RVV_LD_OINDEXED ||
-                metadata_.id == RVV_INSN_TYPE::RVV_LD_UINDEXED) {
-              float emul = ((float)eew / (float)vtype.sew) * mul;
-              mul = emul;
-            } else if (metadata_.id == RVV_INSN_TYPE::RVV_VMVR) {
-              mul = metadata_.operands[2].imm;
-            }
-            for (uint16_t y = 0; y < mul; y++) {
-              uint64_t reg_ = op.reg + y;
-              sourceRegisters_[sourceRegisterCount_] = decodeVecReg(reg_);
-              sourceOperandsPending_++;
-              sourceRegisterCount_++;
-            }
-            break;
-          }
-          case 0x5: {  // sysreg
-            sourceRegisters_[sourceRegisterCount_] = {
-                RegisterType::SYSTEM,
-                static_cast<uint16_t>(
-                    architecture_.getSystemRegisterTag(op.reg))};
-            sourceRegisterCount_++;
-            sourceOperandsPending_++;
-            break;
-          }
-        }
-      }
+    case RVV_INSN_TYPE::RVV_LD_USTRIDE:
+    case RVV_INSN_TYPE::RVV_LD_USTRIDEFF:
+    case RVV_INSN_TYPE::RVV_LD_STRIDED:
       break;
+    case RVV_INSN_TYPE::RVV_LD_UINDEXED:
+    case RVV_INSN_TYPE::RVV_LD_OINDEXED: {
+      float emul = ((float)eew / (float)vtype.sew) * vtype.vlmul;
+      src_mul = emul;
+      dest_mul = vtype.vlmul;
+    } break;
+    // -------------- Stores -------------------
+    case RVV_INSN_TYPE::RVV_ST_WHOLEREG:
+      src_mul = metadata_.operands[2].imm;
+    case RVV_INSN_TYPE::RVV_ST_USTRIDE:
+    case RVV_INSN_TYPE::RVV_ST_STRIDED: {
+      skip_dest = true;
+      opr_start = 0;
+    } break;
+    case RVV_INSN_TYPE::RVV_ST_UINDEXED:
+    case RVV_INSN_TYPE::RVV_ST_OINDEXED: {
+      for (uint16_t x = 0; x < vtype.vlmul; x++) {
+        uint64_t reg_ = metadata_.operands[0].reg + x;
+        sourceRegisters_[sourceRegisterCount_] = decodeVecReg(reg_);
+        sourceOperandsPending_++;
+        sourceRegisterCount_++;
+      }
+      float emul = ((float)eew / (float)vtype.sew) * vtype.vlmul;
+      src_mul = emul;
+      opr_start = 1;
+      skip_dest = true;
+    } break;
+    default:
+      std::cerr
+          << "Unknown RVV instruction group id given to instruction decode: "
+          << metadata_.id << std::endl;
+      std::exit(1);
+  }
+
+  // Destination decode logic
+  if (!skip_dest) {
+    destinationRegisterCount_ = 0;
+    uint16_t start_reg = metadata_.operands[0].reg;
+    for (uint8_t x = 0; x < dest_mul; x++) {
+      destinationRegisters_[destinationRegisterCount_] =
+          decodeVecReg(start_reg + x);
+      destinationRegisterCount_++;
     }
-    case RVV_INSN_TYPE::RVV_ST_USTRIDE:     // vse
-    case RVV_INSN_TYPE::RVV_ST_STRIDED:     // vsse
-    case RVV_INSN_TYPE::RVV_ST_UINDEXED:    // vsuxei
-    case RVV_INSN_TYPE::RVV_ST_OINDEXED:    // vsoxei
-    case RVV_INSN_TYPE::RVV_ST_WHOLEREG: {  // vsre
-      for (uint8_t x = 0; x < metadata_.operandCount; x++) {
-        simeng::cs_riscv_op op = metadata_.operands[x];
-        switch (op.type) {
-          case 0x1: {  // reg
-            sourceRegisters_[sourceRegisterCount_] =
-                csRegToRegister(op.reg + 1, architecture_);
-            if (op.reg == 0) {
-              // Catch zero register references and pre-complete those operands
-              sourceValues_[sourceRegisterCount_] = RegisterValue(0, 8);
-            } else {
-              sourceOperandsPending_++;
-            }
-            sourceRegisterCount_++;
-            break;
-          }
-          case 0x2: {  // imm
-            vectorImmediates[vecImmCount] = op.imm;
-            vecImmCount++;
-            break;
-          }
-          case 0x4: {  // vreg
-            uint16_t mul = vtype.vlmul;
-            if (metadata_.id == RVV_INSN_TYPE::RVV_ST_OINDEXED ||
-                metadata_.id == RVV_INSN_TYPE::RVV_ST_UINDEXED) {
-              if (x == 0) {
-                mul = vtype.vlmul;
-              } else {
-                float emul = ((float)eew / (float)vtype.sew) * mul;
-                mul = emul;
-              }
-            } else if (metadata_.id == RVV_INSN_TYPE::RVV_ST_WHOLEREG) {
-              mul = metadata_.operands[2].imm;
-              // std::cout << "Decode MUL: " << mul << std::endl;
-            }
-            for (int y = 0; y < mul; y++) {
-              uint64_t reg_ = op.reg + y;
-              sourceRegisters_[sourceRegisterCount_] = decodeVecReg(reg_);
-              sourceOperandsPending_++;
-              sourceRegisterCount_++;
-            }
-            break;
-          }
+  }
+
+  // Source decode logic
+  for (uint8_t x = opr_start; x < metadata_.operandCount; x++) {
+    simeng::cs_riscv_op op = metadata_.operands[x];
+    switch (op.type) {
+      case 0x1: {  // reg
+        sourceRegisters_[sourceRegisterCount_] =
+            csRegToRegister(op.reg + 1, architecture_);
+        if (op.reg == 0) {
+          // Catch zero register references and pre-complete those
+          // operands
+          sourceValues_[sourceRegisterCount_] = RegisterValue(0, 8);
+        } else {
+          sourceOperandsPending_++;
         }
+        sourceRegisterCount_++;
+        break;
       }
-      break;
+      case 0x2: {  // imm
+        vectorImmediates[vecImmCount] = op.imm;
+        vecImmCount++;
+        break;
+      }
+      case 0x4: {  // vreg
+        for (uint16_t y = 0; y < src_mul; y++) {
+          uint64_t reg_ = op.reg + y;
+          sourceRegisters_[sourceRegisterCount_] = decodeVecReg(reg_);
+          sourceOperandsPending_++;
+          sourceRegisterCount_++;
+        }
+      } break;
+      case 0x5: {  // vmask_reg
+        uint64_t reg = op.reg;
+        sourceRegisters_[sourceRegisterCount_] = decodeVecReg(reg);
+        sourceOperandsPending_++;
+        sourceRegisterCount_++;
+      } break;
+      case 0x6: {  // sysreg
+        sourceRegisters_[sourceRegisterCount_] = {
+            RegisterType::SYSTEM,
+            static_cast<uint16_t>(architecture_.getSystemRegisterTag(op.reg))};
+        sourceRegisterCount_++;
+        sourceOperandsPending_++;
+      } break;
+      default:
+        std::cerr << "Unknown operand type supplied to instruction decode via "
+                     "instruction metadata.operands"
+                  << std::endl;
+        std::exit(1);
     }
   }
 }
@@ -346,9 +332,8 @@ void Instruction::decode() {
   // Extract explicit register accesses and immediates
   for (size_t i = 0; i < metadata_.operandCount; i++) {
     const auto& op = metadata_.operands[i];
-
-    // First operand is always of REG type but could be either source or
-    // destination
+    // First operand is always of REG type but could be either
+    // source or destination
     if (i == 0 && op.type == RISCV_OP_REG) {
       // If opcode is branch or store (but not atomic or jump) the first operand
       // is a source register, for all other instructions the first operand is a
@@ -392,7 +377,6 @@ void Instruction::decode() {
             RegisterType::ZERO_REGISTER) {
           destinationRegisters_[destinationRegisterCount_] =
               csRegToRegister(op.reg, architecture_);
-
           destinationRegisterCount_++;
         }
       }

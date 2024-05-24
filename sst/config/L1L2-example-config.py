@@ -73,3 +73,5 @@ link_l1cache_l2cache = sst.Link("link_l1cache_l2cache_link")
 link_l1cache_l2cache.connect( (l1cache, "low_network_0", "100ps"), (l2cache, "high_network_0", "100ps") )
 link_mem_bus = sst.Link("link_mem_bus_link")
 link_mem_bus.connect( (l2cache, "low_network_0", "100ps"), (memctrl, "direct_link", "100ps") )
+
+# ----------------------------------- Memory Backend & Controller -------------------------------------

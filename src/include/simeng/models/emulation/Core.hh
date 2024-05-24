@@ -82,6 +82,13 @@ class Core : public simeng::Core {
 
   /***/
   uint64_t seqId_ = 0;
+
+  /***/
+  uint64_t base_loads = 0;
+  uint64_t base_stores = 0;
+
+  uint64_t v_loads = 0;
+  uint64_t v_stores = 0;
 };
 
 }  // namespace emulation

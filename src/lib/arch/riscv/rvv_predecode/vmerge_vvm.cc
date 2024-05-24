@@ -35,7 +35,7 @@ rvv_insn_desc rvv_vmerge_vvm_predecode(const uint32_t insn) {
                        .operands = {INIT_RVV_OPR(RISCV_OP_VREG, reg, vd),
                                     INIT_RVV_OPR(RISCV_OP_VREG, reg, vs2),
                                     INIT_RVV_OPR(RISCV_OP_VREG, reg, vs1),
-                                    INIT_RVV_OPR(RISCV_OP_VREG, reg, 0)}};
+                                    INIT_RVV_OPR(RISCV_OP_VMASKREG, reg, 0)}};
 };
 
 }  // namespace riscv

@@ -13,6 +13,7 @@ typedef enum riscv_op_type : uint8_t {
   RISCV_OP_IMM,          // = CS_OP_IMM (Immediate operand).
   RISCV_OP_MEM,          // = CS_OP_MEM (Memory operand).
   RISCV_OP_VREG,
+  RISCV_OP_VMASKREG,
   RISCV_OP_SYSREG
 } riscv_op_type;
 
