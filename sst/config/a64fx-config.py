@@ -84,8 +84,8 @@ memprops = getMemoryProps(8, "GiB")
 # Using sst-info sstsimeng.simengcore to get all cache parameters, ports and subcomponent slots.
 cpu = sst.Component("core", "sstsimeng.simengcore")
 cpu.addParams({
-    "simeng_config_path": "<PATH TO A64FX SIMENG MODEL CONFIG>",
-    "executable_path": "<PATH TO EXECUTABLE BINARY>",
+    "simeng_config_path": "/home/rahat/SimEng/configs/sst-cores/riscv.yaml",
+    "executable_path": "/home/rahat/SimEng/progs/prog_tsvc276_a",
     "executable_args": "",
     "clock" : A64FX_CLOCK,
     "max_addr_memory": memprops["end_addr"],
@@ -173,6 +173,11 @@ memory_backend.addParams({
 })
 
 # ----------------------------------- Memory Backend & Controller -------------------------------------
+
+sst.setStatisticLoadLevel(7)
+sst.setStatisticOutput("sst.statOutputConsole")
+sst.enableStatisticsForComponentName("a64fx.l1cache", ["GetS_recv", "GetX_recv", "Write_recv", "GetSX_recv", "PutM_recv", "PutX_recv","PutS_recv", "PutE_recv" ,"TotalEventsReceived","CacheHits", "CacheMisses", "eventSent_GetS", "eventSent_GetX", "eventSent_GetSX", "eventSent_Write", "eventSent_PutS", "eventSent_PutM", "eventSent_PutE", "eventSent_Put", "eventSent_Get"])
+sst.enableStatisticsForComponentName("a64fx.l2cache", ["GetS_recv", "GetX_recv", "Write_recv", "GetSX_recv", "PutM_recv", "PutX_recv","PutS_recv", "PutE_recv" ,"TotalEventsReceived","CacheHits", "CacheMisses", "eventSent_GetS", "eventSent_GetX", "eventSent_GetSX", "eventSent_Write", "eventSent_PutS", "eventSent_PutM", "eventSent_PutE", "eventSent_Put", "eventSent_Get"])
 
 
 # ---------------------------------------------- Links ------------------------------------------------

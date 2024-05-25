@@ -63,8 +63,8 @@ InstructionMetadata::InstructionMetadata(struct rvv_insn_desc insn_desc,
               sizeof(simeng::cs_riscv_op) * operandCount);
   isRVV = true;
   eew = insn_desc.eew;
-  // std::cout << insn_desc.mnemonic << " " << insn_desc.operand_str <<
-  // std::endl;
+  std::cout << insn_desc.mnemonic << " " << insn_desc.operand_str <<
+  std::endl;
 }
 
 InstructionMetadata::InstructionMetadata(const uint8_t* invalidEncoding,

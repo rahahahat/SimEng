@@ -9,8 +9,8 @@ clw = "64"
 # Define the simulation components
 cpu = sst.Component("core", "sstsimeng.simengcore")
 cpu.addParams({
-    "simeng_config_path": "/home/rahat/mphil-project/SimEng/configs/DEMO_RISCV.yaml",
-    "executable_path": "/home/rahat/mphil-project/SimEng/progs/prog_tsvc2101_b",
+    "simeng_config_path": "/home/rahat/SimEng/configs/sst-cores/riscv.yaml",
+    "executable_path": "/home/rahat/SimEng/progs/prog_tsvc2101_b",
     "executable_args": "",
     "clock" : "1GHz",
     "max_addr_memory": 2*1024*1024*1024-1,

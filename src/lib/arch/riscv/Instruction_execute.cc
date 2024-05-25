@@ -52,6 +52,50 @@ void execute_v_st(uint16_t vlen, uint16_t lmul,
 }
 
 template <typename T>
+void execute_coalesced_v_ld(uint16_t vlen, uint16_t lmul,
+                  std::array<simeng::RegisterValue, 8>& results,
+                  std::vector<simeng::RegisterValue>& memoryData) {
+  uint16_t vlenb = vlen / 8;
+  uint16_t vsewb = sizeof(T);
+  std::vector<T> vec;
+  for (auto& rval: memoryData) {
+    const T* reg_val = rval.getAsVector<T>();
+    for (uint16_t i = 0; i < rval.size() / sizeof(T); i++) {
+      vec.push_back(reg_val[i]);
+    }
+  }
+  for (int j = 0; j < lmul; j++) {
+    uint16_t idx = (j * (vlenb / vsewb));
+    results[j] = RegisterValue((const char*)&vec[idx], sizeof(T) * (vlenb / vsewb));
+  }
+}
+
+template <typename T>
+void execute_coalesced_v_st(uint16_t vlen, uint16_t lmul,
+                  std::vector<memory::MemoryAccessTarget> addrs,
+                  std::array<simeng::RegisterValue, 26>& sources,
+                  std::vector<simeng::RegisterValue>& memoryData) {
+  uint16_t vlenb = vlen / 8;
+  uint16_t vsewb = sizeof(T);
+  uint16_t size = 0; 
+  uint16_t i = 0;
+  std::vector<T> vec;
+
+  for (uint16_t x = 0; x < lmul; x++) {
+    auto& rval = sources[x];
+    const T* vals = rval.getAsVector<T>();
+    for (uint16_t y = 0; y < vlenb / vsewb; y++) {
+      vec.push_back(vals[x]);
+    }
+  }
+  for (auto& mtarget: addrs) {
+    memoryData[i] = RegisterValue((const char*)&vec[size / sizeof(T)], mtarget.size);
+    size += mtarget.size;
+    i++;
+  }
+}
+
+template <typename T>
 void do_vssl_vi(uint16_t vlen, uint16_t lmul, int64_t uimm,
                 std::array<simeng::RegisterValue, 26>& sources,
                 std::array<simeng::RegisterValue, 8>& results) {
@@ -254,19 +298,19 @@ void do_vmv_vi(uint16_t vlen, uint16_t lmul, int64_t val,
       std::exit(1);                                          \
   }
 
-#define V_LD_ST(swarg, func, vlen, lmul, arr, vec)                  \
+#define V_LD_ST(swarg, func, ...)                  \
   switch (swarg) {                                                  \
     case 8:                                                         \
-      func<uint8_t>(vlen, lmul, arr, vec);                          \
+      func<uint8_t>(__VA_ARGS__);                          \
       break;                                                        \
     case 16:                                                        \
-      func<uint16_t>(vlen, lmul, arr, vec);                         \
+      func<uint16_t>(__VA_ARGS__);                         \
       break;                                                        \
     case 32:                                                        \
-      func<uint32_t>(vlen, lmul, arr, vec);                         \
+      func<uint32_t>(__VA_ARGS__);                         \
       break;                                                        \
     case 64:                                                        \
-      func<uint64_t>(vlen, lmul, arr, vec);                         \
+      func<uint64_t>(__VA_ARGS__);                         \
       break;                                                        \
     default:                                                        \
       std::cerr << "Unsupported SEW in VI LD/ST execute: " << swarg \
@@ -437,7 +481,10 @@ void Instruction::executionNYI() {
 void Instruction::executeRVVLoadStore(vtype_reg& vtype) {
   uint16_t vlen = architecture_.vlen;
   switch (metadata_.id) {
-    case RVV_INSN_TYPE::RVV_LD_USTRIDE:
+    case RVV_INSN_TYPE::RVV_LD_USTRIDE: {
+      V_LD_ST(eew, execute_coalesced_v_ld, architecture_.vlen, vtype.vlmul, results_,
+              memoryData_);
+    } break;
     case RVV_INSN_TYPE::RVV_LD_STRIDED: {
       V_LD_ST(eew, execute_v_ld, architecture_.vlen, vtype.vlmul, results_,
               memoryData_);
@@ -448,10 +495,15 @@ void Instruction::executeRVVLoadStore(vtype_reg& vtype) {
               results_, memoryData_);
     } break;
     case RVV_INSN_TYPE::RVV_LD_WHOLEREG: {
-      V_LD_ST(eew, execute_v_ld, architecture_.vlen, vectorImmediates[0],
+      V_LD_ST(eew, execute_coalesced_v_ld, architecture_.vlen, vectorImmediates[0],
               results_, memoryData_);
     } break;
-    case RVV_INSN_TYPE::RVV_ST_USTRIDE:
+    case RVV_INSN_TYPE::RVV_ST_USTRIDE: {
+      // V_LD_ST(eew, execute_coalesced_v_st, architecture_.vlen, vtype.vlmul, memoryAddresses_, sourceValues_,
+      //     memoryData_);
+      V_LD_ST(eew, execute_v_st, architecture_.vlen, vtype.vlmul, sourceValues_,
+          memoryData_);
+    } break;
     case RVV_INSN_TYPE::RVV_ST_STRIDED: {
       V_LD_ST(eew, execute_v_st, architecture_.vlen, vtype.vlmul, sourceValues_,
               memoryData_);
@@ -462,8 +514,9 @@ void Instruction::executeRVVLoadStore(vtype_reg& vtype) {
               sourceValues_, memoryData_);
     } break;
     case RVV_INSN_TYPE::RVV_ST_WHOLEREG: {
-      V_LD_ST(eew, execute_v_st, architecture_.vlen, vectorImmediates[0],
-              sourceValues_, memoryData_);
+      // V_LD_ST(eew, execute_coalesced_v_st, architecture_.vlen, vectorImmediates[0],
+      //         memoryAddresses_, sourceValues_, memoryData_);
+      V_LD_ST(eew, execute_v_st, architecture_.vlen, vectorImmediates[0], sourceValues_, memoryData_);      
     } break;
     default:
       return executionNYI();
