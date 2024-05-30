@@ -53,12 +53,12 @@ void execute_v_st(uint16_t vlen, uint16_t lmul,
 
 template <typename T>
 void execute_coalesced_v_ld(uint16_t vlen, uint16_t lmul,
-                  std::array<simeng::RegisterValue, 8>& results,
-                  std::vector<simeng::RegisterValue>& memoryData) {
+                            std::array<simeng::RegisterValue, 8>& results,
+                            std::vector<simeng::RegisterValue>& memoryData) {
   uint16_t vlenb = vlen / 8;
   uint16_t vsewb = sizeof(T);
   std::vector<T> vec;
-  for (auto& rval: memoryData) {
+  for (auto& rval : memoryData) {
     const T* reg_val = rval.getAsVector<T>();
     for (uint16_t i = 0; i < rval.size() / sizeof(T); i++) {
       vec.push_back(reg_val[i]);
@@ -66,18 +66,19 @@ void execute_coalesced_v_ld(uint16_t vlen, uint16_t lmul,
   }
   for (int j = 0; j < lmul; j++) {
     uint16_t idx = (j * (vlenb / vsewb));
-    results[j] = RegisterValue((const char*)&vec[idx], sizeof(T) * (vlenb / vsewb));
+    results[j] =
+        RegisterValue((const char*)&vec[idx], sizeof(T) * (vlenb / vsewb));
   }
 }
 
 template <typename T>
 void execute_coalesced_v_st(uint16_t vlen, uint16_t lmul,
-                  std::vector<memory::MemoryAccessTarget> addrs,
-                  std::array<simeng::RegisterValue, 26>& sources,
-                  std::vector<simeng::RegisterValue>& memoryData) {
+                            std::vector<memory::MemoryAccessTarget> addrs,
+                            std::array<simeng::RegisterValue, 26>& sources,
+                            std::vector<simeng::RegisterValue>& memoryData) {
   uint16_t vlenb = vlen / 8;
   uint16_t vsewb = sizeof(T);
-  uint16_t size = 0; 
+  uint16_t size = 0;
   uint16_t i = 0;
   std::vector<T> vec;
 
@@ -85,11 +86,12 @@ void execute_coalesced_v_st(uint16_t vlen, uint16_t lmul,
     auto& rval = sources[x];
     const T* vals = rval.getAsVector<T>();
     for (uint16_t y = 0; y < vlenb / vsewb; y++) {
-      vec.push_back(vals[x]);
+      vec.push_back(vals[y]);
     }
   }
-  for (auto& mtarget: addrs) {
-    memoryData[i] = RegisterValue((const char*)&vec[size / sizeof(T)], mtarget.size);
+  for (auto& mtarget : addrs) {
+    memoryData[i] =
+        RegisterValue((const char*)&vec[(size / sizeof(T))], mtarget.size);
     size += mtarget.size;
     i++;
   }
@@ -298,19 +300,19 @@ void do_vmv_vi(uint16_t vlen, uint16_t lmul, int64_t val,
       std::exit(1);                                          \
   }
 
-#define V_LD_ST(swarg, func, ...)                  \
+#define V_LD_ST(swarg, func, ...)                                   \
   switch (swarg) {                                                  \
     case 8:                                                         \
-      func<uint8_t>(__VA_ARGS__);                          \
+      func<uint8_t>(__VA_ARGS__);                                   \
       break;                                                        \
     case 16:                                                        \
-      func<uint16_t>(__VA_ARGS__);                         \
+      func<uint16_t>(__VA_ARGS__);                                  \
       break;                                                        \
     case 32:                                                        \
-      func<uint32_t>(__VA_ARGS__);                         \
+      func<uint32_t>(__VA_ARGS__);                                  \
       break;                                                        \
     case 64:                                                        \
-      func<uint64_t>(__VA_ARGS__);                         \
+      func<uint64_t>(__VA_ARGS__);                                  \
       break;                                                        \
     default:                                                        \
       std::cerr << "Unsupported SEW in VI LD/ST execute: " << swarg \
@@ -482,12 +484,14 @@ void Instruction::executeRVVLoadStore(vtype_reg& vtype) {
   uint16_t vlen = architecture_.vlen;
   switch (metadata_.id) {
     case RVV_INSN_TYPE::RVV_LD_USTRIDE: {
-      V_LD_ST(eew, execute_coalesced_v_ld, architecture_.vlen, vtype.vlmul, results_,
+      V_LD_ST(eew, execute_v_ld, architecture_.vlen, vtype.vlmul, results_,
               memoryData_);
     } break;
     case RVV_INSN_TYPE::RVV_LD_STRIDED: {
       V_LD_ST(eew, execute_v_ld, architecture_.vlen, vtype.vlmul, results_,
               memoryData_);
+      // V_LD_ST(eew, execute_coalesced_v_ld, architecture_.vlen, vtype.vlmul,
+      //         results_, memoryData_);
     } break;
     case RVV_INSN_TYPE::RVV_LD_OINDEXED:
     case RVV_INSN_TYPE::RVV_LD_UINDEXED: {
@@ -495,14 +499,14 @@ void Instruction::executeRVVLoadStore(vtype_reg& vtype) {
               results_, memoryData_);
     } break;
     case RVV_INSN_TYPE::RVV_LD_WHOLEREG: {
-      V_LD_ST(eew, execute_coalesced_v_ld, architecture_.vlen, vectorImmediates[0],
+      V_LD_ST(eew, execute_v_ld, architecture_.vlen, vectorImmediates[0],
               results_, memoryData_);
     } break;
     case RVV_INSN_TYPE::RVV_ST_USTRIDE: {
-      // V_LD_ST(eew, execute_coalesced_v_st, architecture_.vlen, vtype.vlmul, memoryAddresses_, sourceValues_,
-      //     memoryData_);
+      // V_LD_ST(eew, execute_coalesced_v_st, architecture_.vlen, vtype.vlmul,
+      //         memoryAddresses_, sourceValues_, memoryData_);
       V_LD_ST(eew, execute_v_st, architecture_.vlen, vtype.vlmul, sourceValues_,
-          memoryData_);
+              memoryData_);
     } break;
     case RVV_INSN_TYPE::RVV_ST_STRIDED: {
       V_LD_ST(eew, execute_v_st, architecture_.vlen, vtype.vlmul, sourceValues_,
@@ -514,9 +518,11 @@ void Instruction::executeRVVLoadStore(vtype_reg& vtype) {
               sourceValues_, memoryData_);
     } break;
     case RVV_INSN_TYPE::RVV_ST_WHOLEREG: {
-      // V_LD_ST(eew, execute_coalesced_v_st, architecture_.vlen, vectorImmediates[0],
-      //         memoryAddresses_, sourceValues_, memoryData_);
-      V_LD_ST(eew, execute_v_st, architecture_.vlen, vectorImmediates[0], sourceValues_, memoryData_);      
+      // V_LD_ST(8, execute_coalesced_v_st, architecture_.vlen,
+      //         vectorImmediates[0], memoryAddresses_, sourceValues_,
+      //         memoryData_);
+      V_LD_ST(eew, execute_v_st, architecture_.vlen, vectorImmediates[0],
+              sourceValues_, memoryData_);
     } break;
     default:
       return executionNYI();

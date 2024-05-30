@@ -33,6 +33,7 @@ void FetchUnit::tick() {
     return;
   }
 
+  /*
   // If loop buffer has been filled, fill buffer to decode
   if (loopBufferState_ == LoopBufferState::SUPPLYING) {
     auto outputSlots = output_.getTailSlots();
@@ -54,6 +55,7 @@ void FetchUnit::tick() {
     }
     return;
   }
+  */
 
   // Pointer to the instruction data to decode from
   const uint8_t* buffer;
@@ -139,6 +141,7 @@ void FetchUnit::tick() {
       macroOp[0]->setBranchPrediction(prediction);
     }
 
+    /**
     if (loopBufferState_ == LoopBufferState::FILLING) {
       // Record instruction fetch information in loop body
       uint32_t encoding;
@@ -168,6 +171,7 @@ void FetchUnit::tick() {
       // Once set loopBoundaryAddress_ is fetched, start to fill loop buffer
       loopBufferState_ = LoopBufferState::FILLING;
     }
+    */
 
     assert(bytesRead <= bufferedBytes_ &&
            "Predecode consumed more bytes than were available");

@@ -1,0 +1,10 @@
+ComponentName,StatisticName,StatisticSubId,StatisticType,SimTime,Rank,Sum.u64,SumSQ.u64,Count.u64,Min.u64,Max.u64
+riscv.l1cache,CacheHits,,Accumulator,5328896376,0,1280287,1280287,1280287,1,1
+riscv.l1cache,CacheMisses,,Accumulator,5328896376,0,835073,835073,835073,1,1
+riscv.l1cache,TotalEventsReceived,,Accumulator,5328896376,0,2950433,2950433,2950433,1,1
+riscv.l2cache,CacheHits,,Accumulator,5328896376,0,766927,766927,766927,1,1
+riscv.l2cache,CacheMisses,,Accumulator,5328896376,0,68146,68146,68146,1,1
+riscv.l2cache,TotalEventsReceived,,Accumulator,5328896376,0,1737268,1737268,1737268,1,1
+riscv.l3cache,CacheHits,,Accumulator,5328896376,0,18112,18112,18112,1,1
+riscv.l3cache,CacheMisses,,Accumulator,5328896376,0,50034,50034,50034,1,1
+riscv.l3cache,TotalEventsReceived,,Accumulator,5328896376,0,178134,178134,178134,1,1

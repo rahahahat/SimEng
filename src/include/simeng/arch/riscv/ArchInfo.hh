@@ -54,7 +54,7 @@ class ArchInfo : public simeng::arch::ArchInfo {
                       {8, 32},
                       {8, static_cast<uint16_t>(sysRegisterEnums_.size())},
                       /** use SIMENG CONFIG FOR VLEN*/
-                      {16, 32}};
+                      {32, 32}};
 
     uint16_t gpCount = regConfig["GeneralPurpose-Count"].as<uint16_t>();
     uint16_t fpCount = regConfig["FloatingPoint-Count"].as<uint16_t>();
@@ -62,7 +62,7 @@ class ArchInfo : public simeng::arch::ArchInfo {
                       {8, fpCount},
                       {8, static_cast<uint16_t>(sysRegisterEnums_.size())},
                       /** */
-                      {16, 32}};
+                      {32, 32}};
     physRegQuantities_ = {gpCount, fpCount,
                           static_cast<uint16_t>(sysRegisterEnums_.size()),
                           /** */

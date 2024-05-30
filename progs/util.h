@@ -2,7 +2,7 @@
 #define _UTIL_
 
 #ifndef LEN
-#define LEN 128
+#define LEN 512
 #endif
 
 #ifndef ITR
@@ -10,11 +10,11 @@
 #endif
 
 #ifndef BLOCKSIZE
-#define BLOCKSIZE 27
+#define BLOCKSIZE 32
 #endif
 
 #ifndef iN
-#define iN 5
+#define iN 16
 #endif
 
 #include <stdint.h>

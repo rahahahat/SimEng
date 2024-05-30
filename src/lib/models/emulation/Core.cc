@@ -199,7 +199,10 @@ void Core::execute(std::shared_ptr<Instruction>& uop) {
   }
   if (uop->isStoreData()) {
     auto data = uop->getData();
+    // std::cout << "DATA SIZE: " << data.size() << std::endl;
     for (size_t i = 0; i < previousAddresses_.size(); i++) {
+      // std::cout << "SDATA ADDR: " << previousAddresses_[i].address
+      //           << " SIZE: " << previousAddresses_[i].size << std::endl;
       dataMemory_.requestWrite(previousAddresses_[i], data[i]);
     }
   } else if (uop->isBranch()) {

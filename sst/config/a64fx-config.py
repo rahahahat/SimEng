@@ -84,8 +84,8 @@ memprops = getMemoryProps(8, "GiB")
 # Using sst-info sstsimeng.simengcore to get all cache parameters, ports and subcomponent slots.
 cpu = sst.Component("core", "sstsimeng.simengcore")
 cpu.addParams({
-    "simeng_config_path": "/home/rahat/SimEng/configs/sst-cores/riscv.yaml",
-    "executable_path": "/home/rahat/SimEng/progs/prog_tsvc276_a",
+    "simeng_config_path": "/home/rahat/mphil-project/SimEng/configs/sst-cores/riscv.yaml",
+    "executable_path": "/home/rahat/mphil-project/SimEng/progs/prog_tsvc2101_b",
     "executable_args": "",
     "clock" : A64FX_CLOCK,
     "max_addr_memory": memprops["end_addr"],

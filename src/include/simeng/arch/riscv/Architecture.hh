@@ -51,7 +51,7 @@ class Architecture : public arch::Architecture {
   /** Updates System registers of any system-based timers. */
   void updateSystemTimerRegisters(RegisterFileSet* regFile,
                                   const uint64_t iterations) const override;
-  const uint16_t vlen = 128;
+  const uint16_t vlen = 256;
 
  private:
   /** Retrieve an ExecutionInfo object for the requested instruction. If a
