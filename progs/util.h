@@ -10,7 +10,7 @@
 #endif
 
 #ifndef BLOCKSIZE
-#define BLOCKSIZE 27
+#define BLOCKSIZE 64
 #endif
 
 #ifndef iN

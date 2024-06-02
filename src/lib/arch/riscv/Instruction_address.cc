@@ -26,28 +26,27 @@ namespace riscv {
       var = 128;                  \
       break;                      \
   }
- 
-std::vector<simeng::memory::MemoryAccessTarget> 
-coalesce_vmem_acceses(
-  std::vector<simeng::memory::MemoryAccessTarget> addrs, 
-  uint16_t max_coalesce_size) {
-    std::vector<memory::MemoryAccessTarget> output;
-    uint64_t start_addr = addrs[0].address;
-    uint16_t size = addrs[0].size;
-    uint64_t end_addr = start_addr + max_coalesce_size;
-    for (uint16_t x = 1; x < addrs.size(); x++) {
-      uint64_t eff_addr = addrs[x].address + addrs[x].size;
-      if (eff_addr <= end_addr) {
-        size += addrs[x].size;
-      } else {
-        output.push_back({start_addr, size});
-        start_addr = addrs[x].address;
-        size = addrs[x].size;
-        end_addr = start_addr + max_coalesce_size;
-      }
+
+std::vector<simeng::memory::MemoryAccessTarget> coalesce_vmem_acceses(
+    std::vector<simeng::memory::MemoryAccessTarget> addrs,
+    uint16_t max_coalesce_size) {
+  std::vector<memory::MemoryAccessTarget> output;
+  uint64_t start_addr = addrs[0].address;
+  uint16_t size = addrs[0].size;
+  uint64_t end_addr = start_addr + max_coalesce_size;
+  for (uint16_t x = 1; x < addrs.size(); x++) {
+    uint64_t eff_addr = addrs[x].address + addrs[x].size;
+    if (eff_addr <= end_addr) {
+      size += addrs[x].size;
+    } else {
+      output.push_back({start_addr, size});
+      start_addr = addrs[x].address;
+      size = addrs[x].size;
+      end_addr = start_addr + max_coalesce_size;
     }
-    output.push_back({start_addr, size});
-    return output;
+  }
+  output.push_back({start_addr, size});
+  return output;
 };
 
 template <typename T>
@@ -120,6 +119,7 @@ span<const memory::MemoryAccessTarget> Instruction::generateAddressesForRVV() {
       uint64_t base = sourceValues_[0].get<uint64_t>();
       uint64_t stride = sourceValues_[1].get<uint64_t>();
       auto vaddrs = gen_strided_addrs(vlen, vtype.vlmul, eew, base, stride);
+      vaddrs = coalesce_vmem_acceses(vaddrs, max_coalesce_size);
       setMemoryAddresses(vaddrs);
     } break;
     case RVV_INSN_TYPE::RVV_LD_WHOLEREG: {
@@ -133,15 +133,14 @@ span<const memory::MemoryAccessTarget> Instruction::generateAddressesForRVV() {
       uint64_t base = sourceValues_[mul].get<uint64_t>();
       uint64_t stride = 1;
       auto vaddrs = gen_strided_addrs(vlen, mul, 8, base, stride);
+      vaddrs = coalesce_vmem_acceses(vaddrs, max_coalesce_size);
       setMemoryAddresses(vaddrs);
-      // setMemoryAddresses(coalesce_vmem_acceses(vaddrs, max_coalesce_size));
     } break;
     case RVV_INSN_TYPE::RVV_ST_USTRIDE: {
       uint64_t base = sourceValues_[vtype.vlmul].get<uint64_t>();
       auto vaddrs = gen_strided_addrs(vlen, vtype.vlmul, eew, base, eew / 8);
+      vaddrs = coalesce_vmem_acceses(vaddrs, max_coalesce_size);
       setMemoryAddresses(vaddrs);
-      // setMemoryAddresses(coalesce_vmem_acceses(vaddrs, max_coalesce_size));
-      // setMemoryAddresses(vaddrs);
     } break;
     case RVV_INSN_TYPE::RVV_ST_STRIDED: {
       uint64_t base = sourceValues_[vtype.vlmul].get<uint64_t>();
