@@ -13,11 +13,10 @@ namespace arch {
 namespace riscv {
 
 Architecture::Architecture(kernel::Linux& kernel, ryml::ConstNodeRef config)
-    : arch::Architecture(kernel) {
+    : arch::Architecture(kernel), vlen(config["Core"]["Vlen"].as<uint16_t>()) {
   // Set initial rounding mode for F/D extensions
   // TODO set fcsr accordingly when Zicsr extension supported
   fesetround(FE_TONEAREST);
-
   cs_err n;
 
   // Check whether compressed instructions in use. Initialise variables and

@@ -8,6 +8,7 @@ Core:
   Simulation-Mode: emulation
   Clock-Frequency-GHz: 2.5
   Timer-Frequency-MHz: 200
+  Vlen: 256
 Fetch:
   Fetch-Block-Size: 32
   Loop-Buffer-Size: 64

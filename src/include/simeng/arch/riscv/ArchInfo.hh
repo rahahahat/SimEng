@@ -58,15 +58,13 @@ class ArchInfo : public simeng::arch::ArchInfo {
 
     uint16_t gpCount = regConfig["GeneralPurpose-Count"].as<uint16_t>();
     uint16_t fpCount = regConfig["FloatingPoint-Count"].as<uint16_t>();
+    uint16_t vlen = config["Core"]["Vlen"].as<uint16_t>();
     physRegStruct_ = {{8, gpCount},
                       {8, fpCount},
                       {8, static_cast<uint16_t>(sysRegisterEnums_.size())},
-                      /** */
-                      {16, 32}};
+                      {vlen, 32}};
     physRegQuantities_ = {gpCount, fpCount,
-                          static_cast<uint16_t>(sysRegisterEnums_.size()),
-                          /** */
-                          32};
+                          static_cast<uint16_t>(sysRegisterEnums_.size()), 32};
   }
 
   /** Get the set of system register enums currently supported. */

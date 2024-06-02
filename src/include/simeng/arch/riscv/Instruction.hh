@@ -83,7 +83,7 @@ enum class InsnType : uint32_t {
   isRVVConf = 1 << 14,
 };
 
-/***/
+/** Struct representing a VREG*/
 struct vtype_reg {
   uint8_t sew;
   uint8_t vill;
@@ -218,17 +218,14 @@ class Instruction : public simeng::Instruction {
             static_cast<std::underlying_type<InsnType>::type>(identifier));
   }
 
-  /***/
-  // void writeback(simeng::RegisterFileSet& rfs) override;
-
  private:
-  /** */
+  /** Method to decode RVV instructions */
   void decode_rvv();
 
-  /** */
+  /** Method which generates addresses for RVV instructions. */
   span<const memory::MemoryAccessTarget> generateAddressesForRVV();
 
-  /** */
+  /** Method which executes RVV memory instructions. */
   void executeRVVLoadStore(vtype_reg& reg);
 
   /** Update the instruction's identifier with an additional field. */
@@ -272,12 +269,17 @@ class Instruction : public simeng::Instruction {
    * if unused. */
   int64_t sourceImm_ = 0;
 
+  /** Vector immediate array */
   int64_t vectorImmediates[4];
+
+  /** Vector immediate array count. */
   uint8_t vecImmCount = 0;
 
+  /** EEW assosciate with the instruction, can be 0. */
   uint16_t eew = 0;
+
+  /** To denote if the instruction has already been decoded. */
   bool decoded = false;
-  uint64_t saved_vtype = 0;
 
   /** An array of generated output results. Each entry corresponds to a
    * `destinationRegisters` entry. */

@@ -16,6 +16,8 @@ namespace simeng {
 namespace arch {
 namespace riscv {
 
+/** --------------------------- RVV EXECUTION HELPERS --------------------------
+ */
 #define STRING(s) #s
 
 template <typename T>
@@ -319,6 +321,9 @@ void do_vmv_vi(uint16_t vlen, uint16_t lmul, int64_t val,
                 << std::endl;                                       \
       std::exit(1);                                                 \
   }
+
+/** --------------------------- RVV EXECUTION HELPERS --------------------------
+ */
 
 /** NaN box single precision floating point values as defined in
  *

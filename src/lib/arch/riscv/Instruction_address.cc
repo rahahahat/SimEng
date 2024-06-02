@@ -8,25 +8,7 @@ namespace simeng {
 namespace arch {
 namespace riscv {
 
-#define get_eew(var, MNEMONIC)    \
-  switch (metadata_.opcode) {     \
-    case MATCH_##MNEMONIC##8_V:   \
-      var = 8;                    \
-      break;                      \
-    case MATCH_##MNEMONIC##16_V:  \
-      var = 16;                   \
-      break;                      \
-    case MATCH_##MNEMONIC##32_V:  \
-      var = 32;                   \
-      break;                      \
-    case MATCH_##MNEMONIC##64_V:  \
-      var = 64;                   \
-      break;                      \
-    case MATCH_##MNEMONIC##128_V: \
-      var = 128;                  \
-      break;                      \
-  }
-
+/** ------------------ RVV address generation helpers ----------------- */
 std::vector<simeng::memory::MemoryAccessTarget> coalesce_vmem_acceses(
     std::vector<simeng::memory::MemoryAccessTarget> addrs,
     uint16_t max_coalesce_size) {
@@ -100,6 +82,7 @@ std::vector<simeng::memory::MemoryAccessTarget> gen_strided_addrs(
 
   return addrs;
 }
+/** ------------------ RVV address generation helpers ----------------- */
 
 span<const memory::MemoryAccessTarget> Instruction::generateAddressesForRVV() {
   uint32_t vlen = architecture_.vlen;

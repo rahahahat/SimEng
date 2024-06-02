@@ -17,6 +17,7 @@ enum RV_MAJOR_OPCODES : uint8_t { OP_V = 0x57, LOAD_FP = 0x7, STORE_FP = 0x27 };
 
 enum RVV_INSTR_GROUP : uint16_t { VSETINSNS = 0x7057 };
 
+/** RVV instruction types */
 enum RVV_INSN_TYPE {
   RVV_INSNS = 999,
   RVV_LOAD,
@@ -49,6 +50,7 @@ enum RVV_INSN_TYPE {
 
 enum LMUL_CALC_TYPE { SYSREG, OVERRIDE, CALC };
 
+/** RVV instruction description which is sent to predecode phase.*/
 struct rvv_insn_desc {
   unsigned int id = RVV_INSN_END;
   unsigned int opcode;

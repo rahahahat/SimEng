@@ -298,6 +298,9 @@ void ModelConfig::setExpectations(bool isDefault) {
     expectations_["Core"].addChild(
         ExpectationNode::createExpectation<bool>(false, "Compressed"));
     expectations_["Core"]["Compressed"].setValueSet(std::vector{false, true});
+    expectations_["Core"].addChild(
+        ExpectationNode::createExpectation<uint16_t>(128, "Vlen"));
+    expectations_["Core"]["Vlen"].setValueBounds<uint16_t>(128, 65535);
   }
 
   expectations_["Core"].addChild(
@@ -1037,7 +1040,8 @@ void ModelConfig::postValidation() {
     // std::string l1dType =
     //     configTree_["L1-Data-Memory"]["Interface-Type"].as<std::string>();
     // if (l1dType != "Flat")
-    //   invalid_ << "\t- Only a Flat L1-Data-Memory Interface-Type may be used "
+    //   invalid_ << "\t- Only a Flat L1-Data-Memory Interface-Type may be used
+    //   "
     //               "with the "
     //            << simMode << " Simulation-Mode. Interface-Type used is "
     //            << l1dType << "\n";

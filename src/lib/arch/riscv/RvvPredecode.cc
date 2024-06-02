@@ -15,11 +15,6 @@ std::array<std::string, 32> reg_disasm = {
 std::array<std::string, 8> lmul_disasm = {"m1", "m2",  "m4",  "m8",
                                           "",   "mf8", "mf4", "mf2"};
 std::array<std::string, 4> eew_disasm = {"8", "16", "32", "64"};
-// vmsltu.vx      31..26=0x1a vm vs2 rs1 14..12=0x4 vd 6..0=0x57
-// vmerge.vvm     31..26=0x17 25=0 vs2 vs1 14..12=0x0 vd 6..0=0x57
-// vmv.v.x        31..26=0x17 25=1 24..20=0 rs1 14..12=0x4 vd 6..0=0x57
-// vmv.v.i        31..26=0x17 25=1 24..20=0 simm5 14..12=0x3 vd 6..0=0x57
-// vmadd.vv       31..26=0x29 vm vs2 vs1 14..12=0x2 vd 6..0=0x57
 rvv_insn_desc predecode_mopc_opv(const uint32_t insn) {
   uint16_t func3 = GET_BIT_SS(insn, 12, 14);
   uint16_t funct6 = GET_BIT_SS(insn, 26, 31);
@@ -104,6 +99,7 @@ rvv_insn_desc predecode_mopc_lfp_sfp(const uint32_t insn) {
   }
 }
 
+/** Main RVV predecode function passed to InstructionMetadata. */
 rvv_insn_desc rvv_predecode(const uint32_t insn) {
   uint16_t mopc = GET_BIT_SS(insn, 0, 6);
   switch (mopc) {
