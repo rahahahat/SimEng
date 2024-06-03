@@ -15,6 +15,7 @@ std::array<std::string, 32> reg_disasm = {
 std::array<std::string, 8> lmul_disasm = {"m1", "m2",  "m4",  "m8",
                                           "",   "mf8", "mf4", "mf2"};
 std::array<std::string, 4> eew_disasm = {"8", "16", "32", "64"};
+
 rvv_insn_desc predecode_mopc_opv(const uint32_t insn) {
   uint16_t func3 = GET_BIT_SS(insn, 12, 14);
   uint16_t funct6 = GET_BIT_SS(insn, 26, 31);
@@ -54,6 +55,11 @@ rvv_insn_desc predecode_mopc_opv(const uint32_t insn) {
       } else if (funct6 == 0x17 && GET_BIT(insn, 25) == 1 &&
                  GET_BIT_SS(insn, 20, 24) == 0x0) {
         return rvv_vmv_vx_predecode(insn);
+      }
+    } break;
+    case 0x6: {
+      if (funct6 == 0x25) {
+        return rvv_vmul_vx_predecode(insn);
       }
     } break;
     case 0x7: {

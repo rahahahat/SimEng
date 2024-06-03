@@ -133,6 +133,7 @@ void Instruction::decode_rvv() {
     case RVV_INSN_TYPE::RVV_LD_USTRIDE:
     case RVV_INSN_TYPE::RVV_LD_USTRIDEFF:
     case RVV_INSN_TYPE::RVV_LD_STRIDED:
+    case RVV_INSN_TYPE::RVV_VMUL:
       break;
     case RVV_INSN_TYPE::RVV_LD_UINDEXED:
     case RVV_INSN_TYPE::RVV_LD_OINDEXED: {

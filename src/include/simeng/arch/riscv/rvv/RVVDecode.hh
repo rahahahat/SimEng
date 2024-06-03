@@ -34,6 +34,7 @@ rvv_insn_desc predecode_mopc_lfp_sfp(const uint32_t insn);
 rvv_insn_desc predecode_mopc_opv(const uint32_t insn);
 rvv_insn_desc rvv_predecode(const uint32_t insn);
 rvv_insn_desc rvv_vmadd_vv_predecode(const uint32_t insn);
+rvv_insn_desc rvv_vmul_vx_predecode(const uint32_t insn);
 
 }  // namespace riscv
 }  // namespace arch

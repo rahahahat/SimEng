@@ -116,6 +116,23 @@ void do_vssl_vi(uint16_t vlen, uint16_t lmul, int64_t uimm,
 }
 
 template <typename T>
+void do_vmul_vx(uint16_t vlen, uint16_t lmul,
+                std::array<simeng::RegisterValue, 26>& sources,
+                std::array<simeng::RegisterValue, 8>& results) {
+  uint16_t vsewb = sizeof(T);
+  uint32_t vlenb = vlen / 8;
+  T mul = sources[lmul].get<T>();
+  for (uint8_t m = 0; m < lmul; m++) {
+    const T* src = sources[m].getAsVector<T>();
+    std::vector<T> vec(vlenb / vsewb, '\0');
+    for (uint8_t x = 0; x < vlenb / vsewb; x++) {
+      vec[x] = (src[x] * mul);
+    }
+    results[m] = RegisterValue((const char*)vec.data(), sizeof(T) * vec.size());
+  }
+}
+
+template <typename T>
 void do_vadd_vx(uint16_t vlen, uint16_t lmul,
                 std::array<simeng::RegisterValue, 26>& sources,
                 std::array<simeng::RegisterValue, 8>& results) {
@@ -624,6 +641,72 @@ void Instruction::execute() {
         }
 
       } break;
+      case MATCH_VSETIVLI: {
+        uint64_t uimm = vectorImmediates[0];
+        uint32_t zimm = vectorImmediates[1];
+        uint16_t ovlmul = GET_BIT_SS(zimm, 0, 2);
+        uint16_t osew = GET_BIT_SS(zimm, 3, 5);
+        uint16_t ovta = GET_BIT(zimm, 6);
+        uint16_t ovma = GET_BIT(zimm, 7);
+        float vlmul = 0;
+        uint32_t sew = std::pow(2, osew + 3);
+        if (osew > 0b011) {
+          std::cerr << "Unsupported sew value encoded in vsetvli: "
+                    << std::bitset<3>(osew) << std::endl;
+          std::exit(1);
+        }
+        switch (ovlmul) {
+          case 0b000:
+          case 0b001:
+          case 0b010:
+          case 0b011:
+            vlmul = std::pow(2, ovlmul);
+            break;
+          case 0b101:
+            vlmul = 0.125f;
+          case 0b110:
+            vlmul = 0.25;
+          case 0b111:
+            vlmul = 0.5f;
+          default:
+            std::cerr << "Unsupported vlmul value encoded in vsetvli: "
+                      << std::bitset<3>(ovlmul) << std::endl;
+            std::exit(1);
+        }
+        float vlmax = vlmul * (architecture_.vlen / sew);
+        uint32_t _vlmax = vlmax;
+
+        uint64_t vl =
+            getSysRegFunc_(
+                {RegisterType::SYSTEM,
+                 static_cast<uint16_t>(
+                     architecture_.getSystemRegisterTag(RISCV_V_SYSREG_VL))})
+                .get<uint64_t>();
+
+        if (metadata_.operands[0].reg == 0 && metadata_.operands[1].reg == 0) {
+          vl = vl;
+        } else if (metadata_.operands[0].reg != 0 &&
+                   metadata_.operands[1].reg == 0) {
+          vl = vlmax;
+        } else if (metadata_.operands[1].reg != 0) {
+          if (uimm > vlmax && uimm < (2 * vlmax)) {
+            vl = std::ceil(vlmax / 2);
+          } else if (uimm > (2 * vlmax)) {
+            vl = vlmax;
+          } else {
+            vl = uimm;
+          }
+        }
+        uint64_t vtype = zimm;
+        if (destinationRegisterCount_ == 2) {
+          results_[0] = RegisterValue(vl, 8);
+          results_[1] = RegisterValue(vtype, 8);
+        } else {
+          results_[0] = RegisterValue(vl, 8);
+          results_[1] = RegisterValue(vl, 8);
+          results_[2] = RegisterValue(vtype, 8);
+        }
+      } break;
       case MATCH_VMV1R_V:
       case MATCH_VMV2R_V:
       case MATCH_VMV4R_V:
@@ -681,6 +764,10 @@ void Instruction::execute() {
       case MATCH_VMV_V_I: {
         EEW_TEMPL_SWITCH(vtype.sew, do_vmv_vi, architecture_.vlen, vtype.vlmul,
                          vectorImmediates[0], results_);
+      } break;
+      case MATCH_VMUL_VX: {
+        EEW_TEMPL_SWITCH(vtype.sew, do_vmul_vx, architecture_.vlen, vtype.vlmul,
+                         sourceValues_, results_);
       } break;
       default: {
         return executionNYI();
