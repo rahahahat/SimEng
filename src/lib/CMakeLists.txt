@@ -63,7 +63,6 @@ set(SIMENG_SOURCES
     arch/riscv/rvv_predecode/vmv_vx.cc
     arch/riscv/rvv_predecode/vmadd_vv.cc
     arch/riscv/rvv_predecode/vmul_vx.cc
-    Backward.cc
 )
 
 configure_file(${capstone_SOURCE_DIR}/arch/AArch64/AArch64GenInstrInfo.inc AArch64GenInstrInfo.inc COPYONLY)
@@ -74,7 +73,7 @@ set_target_properties(libsimeng PROPERTIES OUTPUT_NAME simeng)
 
 target_include_directories(libsimeng PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_include_directories(libsimeng PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-target_link_libraries(libsimeng capstone fmt bfd)
+target_link_libraries(libsimeng capstone fmt)
 
 set_target_properties(libsimeng PROPERTIES VERSION ${SimEng_VERSION})
 set_target_properties(libsimeng PROPERTIES SOVERSION ${SimEng_VERSION_MAJOR})
